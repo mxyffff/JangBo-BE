@@ -6,7 +6,7 @@ import lombok.ToString;
 import me.swudam.jangbo.dto.MerchantFormDto;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-// 상인-2 - [온보딩] 상인 상점 등록
+// [온보딩] 상인
 @ToString
 @Entity
 @Table(name="merchant")
@@ -30,14 +30,8 @@ public class Merchant {
     @Column(unique = true)
     private String phoneNumber; // 전화번호
 
-    private String storeName; // 상점 이름
-    private String storeAddress; // 상점 위치(도로명주소)
-
     @Column(unique = true)
     private String businessNumber; // 사업자등록번호
-
-    @Enumerated(EnumType.STRING)
-    private Category category; // 카테고리 필드 추가
 
     public static Merchant createMerchant(MerchantFormDto merchantFormDto, PasswordEncoder passwordEncoder) {
         Merchant merchant = new Merchant();
@@ -49,11 +43,7 @@ public class Merchant {
         merchant.setPassword(pwd);
 
         merchant.setPhoneNumber(merchantFormDto.getPhoneNumber()); // 전화번호
-        merchant.setStoreName(merchantFormDto.getStoreName()); // 상점 이름
-        merchant.setStoreAddress(merchantFormDto.getStoreAddress()); // 상점 위치
         merchant.setBusinessNumber(merchantFormDto.getBusinessNumber()); // 사업자등록번호
-
-        merchant.setCategory(merchantFormDto.getCategory()); // 카테고리
 
         return merchant;
     }

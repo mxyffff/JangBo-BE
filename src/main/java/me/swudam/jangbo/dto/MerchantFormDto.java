@@ -9,7 +9,7 @@ import lombok.Setter;
 import me.swudam.jangbo.entity.Category;
 import org.hibernate.validator.constraints.Length;
 
-// 상인-2 - [온보딩] 상인 상점 등록
+// [온보딩] 상인
 @Getter
 @Setter
 public class MerchantFormDto {
@@ -34,15 +34,6 @@ public class MerchantFormDto {
     @NotBlank(message = "전화번호는 필수 입력 값입니다.")
     private String phoneNumber;
 
-    @NotBlank(message = "상점 이름은 필수 입력 값입니다.")
-    private String storeName;
-
-    @NotBlank(message = "상점 위치는 필수 입력 값입니다.")
-    private String storeAddress;
-
     @NotBlank(message = "사업자등록번호는 필수 입력 값입니다.")
     private String businessNumber;
-
-    @NotNull(message = "카테고리는 한 가지를 필수 선택해야 합니다.")
-    private Category category; // 단일 선택
 }

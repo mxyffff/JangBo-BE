@@ -3,7 +3,7 @@ package me.swudam.jangbo.repository;
 import me.swudam.jangbo.entity.Merchant;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-// 상인-2 - [온보딩] 상인 상점 등록
+// [온보딩] 상인
 public interface MerchantRepository extends JpaRepository<Merchant, Long> {
     // 이메일 중복 검증
     Merchant findByEmail(String email);

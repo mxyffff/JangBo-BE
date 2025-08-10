@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 
+// [온보딩] 상인
 @Service
 @Transactional
 @RequiredArgsConstructor

@@ -13,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+// [온보딩] 상인
 @SpringBootTest
 @Transactional
 @TestPropertySource("classpath:application.properties")
@@ -28,12 +29,9 @@ class MerchantServiceTest {
 
         merchantFormDto.setUsername("김슈니");
         merchantFormDto.setEmail("swu@gmail.com");
-        merchantFormDto.setPassword("1234");
+        merchantFormDto.setPassword("password!");
         merchantFormDto.setPhoneNumber("010-1234-5678");
-        merchantFormDto.setStoreName("명이칼국수");
-        merchantFormDto.setStoreAddress("서울 노원구 동일로180길 53");
         merchantFormDto.setBusinessNumber("123-4567-8900");
-        merchantFormDto.setCategory(Category.건어물);
 
         Merchant merchant = Merchant.createMerchant(merchantFormDto, passwordEncoder);
         return merchant;
@@ -50,10 +48,7 @@ class MerchantServiceTest {
         assertEquals(merchant1.getEmail(), merchant2.getEmail());
         assertEquals(merchant1.getPassword(), merchant2.getPassword());
         assertEquals(merchant1.getPhoneNumber(), merchant2.getPhoneNumber());
-        assertEquals(merchant1.getStoreName(), merchant2.getStoreName());
-        assertEquals(merchant1.getStoreAddress(), merchant2.getStoreAddress());
         assertEquals(merchant1.getBusinessNumber(), merchant2.getBusinessNumber());
-        assertEquals(merchant1.getCategory(), merchant2.getCategory());
     }
 
     @Test

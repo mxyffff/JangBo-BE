@@ -13,6 +13,6 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
     public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException)
             throws IOException, ServletException {
         // 에러 처리 로직
-        response.sendRedirect("/merchant/login/error"); // 권한이 없는 경우 error 페이지로 리다이렉트
+        response.sendRedirect("/merchants/login/error"); // 권한이 없는 경우 error 페이지로 리다이렉트
     }
 }

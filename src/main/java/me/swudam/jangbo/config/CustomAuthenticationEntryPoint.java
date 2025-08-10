@@ -16,7 +16,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
         if ("XMLHttpRequest".equals(request.getHeader("x-requested-with"))) { // 요청 헤더 값 확인
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"); // AJAX 요청이면 401(Unauthorized) 응답
         } else{ // AJAX 요청이 아니라면 (브라우저에서 직접 요청한 경우)
-            response.sendRedirect("/merchant/login"); // 페이지 리다이렉트
+            response.sendRedirect("/merchants/login"); // 페이지 리다이렉트
         }
     }
 }

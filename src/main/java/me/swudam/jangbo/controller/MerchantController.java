@@ -1,5 +1,6 @@
 package me.swudam.jangbo.controller;
 
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import me.swudam.jangbo.dto.MerchantFormDto;
 import me.swudam.jangbo.entity.Category;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import jakarta.validation.Valid;
 
+// [온보딩] 상인
 @RequestMapping("/merchants")
 @Controller
 @RequiredArgsConstructor
@@ -32,7 +34,8 @@ public class MerchantController {
 
     // Post
     @PostMapping(value="/new") // submit 버튼 누르면 호출되어 회원 생성
-    public String merchantForm(@Valid MerchantFormDto merchantFormDto, BindingResult bindingResult, Model model){
+    public String merchantForm(@Valid MerchantFormDto merchantFormDto, BindingResult bindingResult,
+                               Model model, HttpSession session){
         // DTO 유효성 검사 실패 시
         if(bindingResult.hasErrors()){
             model.addAttribute("categories", Category.values());
@@ -49,13 +52,20 @@ public class MerchantController {
         try{
             Merchant merchant = Merchant.createMerchant(merchantFormDto, passwordEncoder);
             merchantService.saveMerchant(merchant);
+
+            // 회원가입 성공 시 세션 플래그 설정 - 상점 등록 페이지 접근 허용
+            session.setAttribute("justRegisteredMerchant", true);
+            // 상점 등록할 때 authenticatino이 없으면 세션에서 이메일을 꺼내 쓰도록
+            session.setAttribute("justRegisteredMerchantEmail", merchant.getEmail()); // 이메일도 같이 저장
+
         } catch(IllegalStateException e){ // 중복 회원 가입 예외 발생 시 예러 메시지를 뷰로 전달
             model.addAttribute("categories", Category.values());
             model.addAttribute("errorMessage", e.getMessage());
             return "merchant/merchantForm";
         }
 
-        return "redirect:/"; // 회원가입 성공 시 메인으로 이동
+        System.out.println("[회원가입 성공] justRegisteredMerchant 플래그 세션에 저장: " + session.getAttribute("justRegisteredMerchant"));
+        return "redirect:/stores/new"; // 회원가입 성공 시 상점 등록으로 이동
     }
 
     // 로그인

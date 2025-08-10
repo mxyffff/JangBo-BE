@@ -2,6 +2,7 @@ package me.swudam.jangbo.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -41,6 +42,8 @@ public class SecurityConfig {
                         .requestMatchers("/merchants/new").permitAll() // 회원가입 페이지는 누구나 접근 가능
                         .requestMatchers("/merchants/login").anonymous() // 로그인 페이지 : 로그인하지 않은 사용자만
                         .requestMatchers("/merchants/logout").authenticated() // 로그아웃 페이지 : 로그인한 사용자만
+                        .requestMatchers(HttpMethod.GET, "/stores/new").permitAll() // GET은 모두 허용
+                        .requestMatchers(HttpMethod.POST, "/stores/new").permitAll() // POST 요청은 세션 플래그로 관리 - 상점 등록 페이지
                         .anyRequest().permitAll()
                 );
 
