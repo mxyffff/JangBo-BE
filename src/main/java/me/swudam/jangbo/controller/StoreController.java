@@ -40,8 +40,6 @@ public class StoreController {
         if (justRegistered == null || !justRegistered) {
             return "redirect:/";
         }
-        // 1회성 접근이므로 세션에서 제거
-        //session.removeAttribute("justRegisteredMerchant");
 
         model.addAttribute("storeFormDto", new StoreFormDto());
         model.addAttribute("categories", Category.values()); // enum 배열 전달

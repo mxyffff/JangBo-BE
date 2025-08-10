@@ -11,6 +11,7 @@ import me.swudam.jangbo.entity.Category;
 import me.swudam.jangbo.entity.DayOff;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalTime;
 import java.util.List;
 
 // [상인] 상점 등록
@@ -26,8 +27,10 @@ public class StoreFormDto {
     @NotBlank(message = "도로명주소는 필수 입력 값입니다.")
     private String storeAddress;
 
-    @NotBlank(message = "운영 시간은 필수 입력 값입니다.")
-    private String businessHours; // "09:00 ~ 18:00"
+    @NotNull(message = "오픈 시간은 필수 입력 값입니다.")
+    private LocalTime openTime;
+    @NotNull(message = "마감 시간은 필수 입력 값입니다.")
+    private LocalTime closeTime;
 
     @NotEmpty(message = "휴무 요일은 필수 입력 값입니다.")
     private List<DayOff> dayOff;

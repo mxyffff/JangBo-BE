@@ -6,6 +6,7 @@ import lombok.Setter;
 import lombok.ToString;
 import me.swudam.jangbo.dto.StoreFormDto;
 
+import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -29,7 +30,9 @@ public class Store {
     private String storeImgPath;
 
     private String storeAddress; // 도로명 주소
-    private String businessHours; // 운영 시간
+
+    private LocalTime openTime; // 오픈 시간
+    private LocalTime closeTime; // 마감 시간
 
     @ElementCollection(targetClass = DayOff.class)
     @CollectionTable(
@@ -55,7 +58,8 @@ public class Store {
 
         store.setStoreName(storeFormDto.getStoreName());
         store.setStoreAddress(storeFormDto.getStoreAddress());
-        store.setBusinessHours(storeFormDto.getBusinessHours());
+        store.setOpenTime(storeFormDto.getOpenTime());
+        store.setCloseTime(storeFormDto.getCloseTime());
         store.setDayOff(new HashSet<>(storeFormDto.getDayOff()));
         store.setStorePhoneNumber(storeFormDto.getStorePhoneNumber());
         store.setCategory(storeFormDto.getCategory());

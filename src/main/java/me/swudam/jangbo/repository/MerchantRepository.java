@@ -12,4 +12,8 @@ public interface MerchantRepository extends JpaRepository<Merchant, Long> {
     // 사업자등록번호 중복 검증
     Merchant findByBusinessNumber(String businessNumber);
     String businessNumber(String businessNumber);
+
+    // 전화번호 중복 검증
+    Merchant findByPhoneNumber(String phoneNumber);
+    String phoneNumber(String phoneNumber);
 }

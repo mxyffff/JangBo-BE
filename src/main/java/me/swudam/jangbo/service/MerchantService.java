@@ -53,7 +53,7 @@ public class MerchantService implements UserDetailsService {
         }
     }
 
-    // 중복 회원 확인 (이메일, 사업자등록번호 기준)
+    // 중복 회원 확인 (이메일, 사업자등록번호, 전화번호 기준)
     private void validateDuplicateMerchant(Merchant merchant){
         Merchant findByEmail = merchantRepository.findByEmail(merchant.getEmail());
         if(findByEmail != null){
@@ -63,6 +63,11 @@ public class MerchantService implements UserDetailsService {
         Merchant findByBusinessNumber = merchantRepository.findByBusinessNumber(merchant.getBusinessNumber());
         if(findByBusinessNumber != null){
             throw new IllegalStateException("이미 등록된 사업자등록번호입니다.");
+        }
+
+        Merchant findByPhoneNumber = merchantRepository.findByPhoneNumber(merchant.getPhoneNumber());
+        if(findByPhoneNumber != null){
+            throw new IllegalStateException("이미 등록된 전화번호입니다.");
         }
     }
 

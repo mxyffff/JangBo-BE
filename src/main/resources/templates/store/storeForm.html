@@ -41,9 +41,14 @@
       <p th:if="${#fields.hasErrors('storeAddress')}" th:errors="*{storeAddress}" class="fieldError"></p>
     </div>
     <div class="form-group">
-      <label th:for="businessHours">운영 시간</label>
-      <input type="text" th:field="*{businessHours}" class="form-control" placeholder="예) 09:00 ~ 18:00">
-      <p th:if="${#fields.hasErrors('businessHours')}" th:errors="*{businessHours}" class="fieldError"></p>
+      <label th:for="openTime">오픈 시간</label>
+      <input type="time" th:field="*{openTime}" class="form-control">
+      <p th:if="${#fields.hasErrors('openTime')}" th:errors="*{openTime}" class="fieldError"></p>
+    </div>
+    <div class="form-group">
+      <label th:for="closeTime">마감 시간</label>
+      <input type="time" th:field="*{closeTime}" class="form-control">
+      <p th:if="${#fields.hasErrors('closeTime')}" th:errors="*{closeTime}" class="fieldError"></p>
     </div>
     <div class="form-group">
       <label th:for="storePhoneNumber">전화번호</label>
