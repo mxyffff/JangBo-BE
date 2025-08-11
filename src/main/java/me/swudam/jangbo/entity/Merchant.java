@@ -19,7 +19,6 @@ public class Merchant {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id; // 기본키 id
 
-    @Column(unique = true)
     private String username; // 유저 이름
 
     @Column(unique = true)
