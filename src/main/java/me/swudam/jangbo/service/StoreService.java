@@ -1,0 +1,64 @@
+package me.swudam.jangbo.service;
+
+import lombok.RequiredArgsConstructor;
+import me.swudam.jangbo.dto.StoreFormDto;
+import me.swudam.jangbo.entity.DayOff;
+import me.swudam.jangbo.entity.Merchant;
+import me.swudam.jangbo.entity.Store;
+import me.swudam.jangbo.repository.MerchantRepository;
+import me.swudam.jangbo.repository.StoreRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.util.UUID;
+
+@Service
+@Transactional
+@RequiredArgsConstructor
+public class StoreService {
+
+    private final StoreRepository storeRepository;
+    private final MerchantRepository merchantRepository;
+
+    @Value("${uploadPath}")
+    private String uploadPath;
+
+    // 휴무 요일 제약 조건(연중무휴는 단독 선택만 가능)
+    public void validateDayOff(StoreFormDto storeFormDto) {
+        if (storeFormDto.getDayOff().contains(DayOff.ALWAYS_OPEN)
+                && storeFormDto.getDayOff().size() > 1) {
+            throw new IllegalStateException("연중무휴는 다른 요일과 함께 선택할 수 없습니다.");
+        }
+    }
+
+    // 이미지 포함하여 Store 저장 로직
+    public Long saveStore(StoreFormDto storeFormDto, Merchant merchant,
+                          MultipartFile storeImage) throws Exception {
+        // 상점 등록 시 merchant_id가 들어가도록 하기 위함
+        Merchant managedMerchant = merchantRepository.findById(merchant.getId())
+                .orElseThrow(() -> new RuntimeException("상인을 찾을 수 없습니다."));
+
+        validateDayOff(storeFormDto);
+
+        Store store = Store.createStore(storeFormDto, managedMerchant);
+
+        if (storeImage != null && !storeImage.isEmpty()) {
+            UUID uuid = UUID.randomUUID();
+            String fileName = uuid.toString() + "-" + storeImage.getOriginalFilename();
+            File storeImgFile = new File(uploadPath, fileName);
+            storeImage.transferTo(storeImgFile);
+
+            // 엔티티 필드에 맞춰 저장
+            store.setStoreImg(fileName);
+            store.setStoreImgPath(uploadPath + "/" + fileName);
+        }
+
+        // 변경 사항 저장
+        storeRepository.save(store);
+
+        return store.getId();
+    }
+}
