@@ -35,7 +35,6 @@ public class CustomerService {
         // 1
         final String email = normalizeEmail(req.getEmail());
         final String username = safeTrim(req.getUsername());
-        final String phoneNumber = safeTrim(req.getPhoneNumber());
         // 평문 비밀번호: DTO 1차 검증 + PasswordValidator 2차 검증을 이미 통과했다고 가정
         final String rawPassword = req.getPassword();
 
@@ -52,9 +51,6 @@ public class CustomerService {
         if (customerRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
         }
-        if (customerRepository.existsByPhoneNumber(phoneNumber)) {
-            throw new IllegalArgumentException("이미 가입된 전화번호입니다.");
-        }
 
         // 4 (해시 결과는 매번 달라지지만 matches(raw, hash)로 검증 가능
         final String passwordHash = passwordEncoder.encode(rawPassword);
@@ -65,7 +61,6 @@ public class CustomerService {
                         .username(username)
                         .email(email)
                         .password(passwordHash)
-                        .phoneNumber(phoneNumber)
                         .build()
         );
 
@@ -101,13 +96,6 @@ public class CustomerService {
         if (email == null || email.isBlank()) return false;
         // 이메일은 normalizeEmail로 소문자/trim 처리 후 조회
         return customerRepository.existsByEmail(normalizeEmail(email));
-    }
-
-    // 중복 체크: 전화번호
-    @Transactional(readOnly = true)
-    public boolean existsPhoneNumber(String phoneNumber) {
-        if (phoneNumber == null || phoneNumber.isBlank()) return false;
-        return customerRepository.existsByPhoneNumber(safeTrim(phoneNumber));
     }
 
     // 안전한 trim: null -> 빈문자열 방지 & 에러 메시지 일관화에 유리

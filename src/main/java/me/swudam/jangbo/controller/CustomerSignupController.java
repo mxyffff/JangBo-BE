@@ -65,13 +65,6 @@ public class CustomerSignupController {
         return ResponseEntity.ok(Map.of("exists", exists));
     }
 
-    /* 전화번호 중복 체크 API */
-    // GET /api/customers/exists/phone?value=전화번호
-    @GetMapping("/exists/phone")
-    public ResponseEntity<?> existsPhone(@RequestParam("value") String phoneNumber) {
-        boolean exists = customerService.existsPhoneNumber(phoneNumber);
-        return ResponseEntity.ok(Map.of("exists", exists));
-    }
 
     /* 서비스에서 던지는 IllegalArgumentException을 400 응답으로 매핑 */
     // 응답 형식(실패): { "created": false, "message": "에러 메시지" }

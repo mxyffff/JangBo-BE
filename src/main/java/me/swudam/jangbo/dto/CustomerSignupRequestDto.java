@@ -30,16 +30,11 @@ public class CustomerSignupRequestDto {
     @NotBlank(message = "비밀번호 확인란을 입력해주세요.")
     private String passwordConfirm;
 
-    // 전화번호
-    @NotBlank(message = "전화번호를 입력해주세요.")
-    @Pattern(regexp = "^01[0-9]{8,9}$", message = "010으로 시작하는 숫자만 입력해주세요.")
-    private String phoneNumber;
-
 
     /* 1. 비밀번호 정책 검증 */
     // 허용 특수문자 32자(₩ 포함), 특수문자 최소 1개 이상
     // PasswordValidator 유틸로 검증
-    @AssertTrue(message = "비밀번호는 8~16자이며, 허용 특수문자 32자 중 최소 1개를 포함해야 합니다.")
+    @AssertTrue(message = "비밀번호는 8~16자이며, 허용 특수문자 8자( ! # $ % & * @ ^ ) 중 최소 1개를 포함해야 합니다.")
     public boolean isPasswordPolicySatisfied() {
         // PasswordValidator는 별도 유틸 고정 구현으로 가정
         // null 대응: @NotBlank에서 이미 차단되지만, 혹시 모를 NPE 방지
