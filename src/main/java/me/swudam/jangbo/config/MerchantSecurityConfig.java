@@ -5,24 +5,20 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 // Spring Security 설정
 @Configuration
 @EnableWebSecurity
-public class SecurityConfig {
+public class MerchantSecurityConfig {
 
     @Bean
-    public PasswordEncoder passwordEncoder(){
-        return new BCryptPasswordEncoder();
-    }
-
-    @Bean
+    @Order(1) // 먼저 매칭되도록
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .securityMatcher("/merchants/**") // 해당 체인은 merchant/**에만 적용
                 // 로그인
                 .formLogin(form -> form
                         .loginPage("/merchants/login")
@@ -34,10 +30,8 @@ public class SecurityConfig {
                 .logout(logout -> logout
                         .logoutRequestMatcher(new AntPathRequestMatcher("/merchants/logout"))
                         .logoutSuccessUrl("/")
-                );
-
-        // 보안 검사
-        http
+                )
+                // 보안 검사
                 .authorizeHttpRequests(requests -> requests
                         .requestMatchers("/merchants/new").permitAll() // 회원가입 페이지는 누구나 접근 가능
                         .requestMatchers("/merchants/login").anonymous() // 로그인 페이지 : 로그인하지 않은 사용자만
@@ -45,10 +39,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/stores/new").permitAll() // GET은 모두 허용
                         .requestMatchers(HttpMethod.POST, "/stores/new").permitAll() // POST 요청은 세션 플래그로 관리 - 상점 등록 페이지
                         .anyRequest().permitAll()
-                );
-
-        // 인증 실패시 대처 방법 커스텀
-        http
+                )
+                // 인증 실패시 대처 방법 커스텀
                 .exceptionHandling(error -> error
                         .authenticationEntryPoint(new CustomAuthenticationEntryPoint())
                         .accessDeniedHandler(new CustomAccessDeniedHandler()) // 403 에러 핸들링
