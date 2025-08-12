@@ -14,24 +14,20 @@ repositories {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
-
-    // 템플릿 엔진 thymeleaf
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
-
-    // 스프링 시큐리티 사용을 위한 의존성
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
     testImplementation 'org.springframework.security:spring-security-test'
 
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-validation'   // 입력값 검증
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-security'
 
-    compileOnly 'org.projectlombok:lombok'                                   // 롬복
+    compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    runtimeOnly 'com.mysql:mysql-connector-j'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    implementation 'com.mysql:mysql-connector-j'
 
     implementation 'org.springframework.boot:spring-boot-starter-mail'       // JavaMailSender (SMTP)
     implementation 'org.springframework.boot:spring-boot-starter-data-redis' // Redis (인증코드/플래그 저장)

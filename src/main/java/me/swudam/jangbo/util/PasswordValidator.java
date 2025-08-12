@@ -11,8 +11,8 @@ import java.util.regex.Pattern;
  *  - 특수문자: 최소 1개 필수
  */
 public class PasswordValidator {
-    // 사용 가능한 특수문자 32자
-    private static final String ALLOWED_SPECIALS = "!\"#$%&'()*+,-./:;<=>?@[₩]^_`{|}~";
+    // 사용 가능한 특수문자 8자 (수정)
+    private static final String ALLOWED_SPECIALS = "!#$%&*@^";
 
     // 정규식에서 안전하게 쓰기 위해 이스케이프 처리
     private static final String ESCAPED_SPECIALS = Pattern.quote(ALLOWED_SPECIALS);

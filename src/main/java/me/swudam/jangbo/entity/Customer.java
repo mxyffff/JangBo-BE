@@ -8,7 +8,6 @@ import lombok.*;
         // DB 레벨(유니크 인덱스)에서 최종 중복 차단 — 동시요청 경쟁상황에도 안전
         @UniqueConstraint(name = "uk_customers_username", columnNames = "username"),
         @UniqueConstraint(name = "uk_customers_email", columnNames = "email"),
-        @UniqueConstraint(name = "uk_phone_number", columnNames = "phone_number")
 
 })
 @Getter
@@ -33,8 +32,4 @@ public class Customer extends BaseTimeEntity {
     // BCrypt 해시 적용된 password
     @Column(name = "password", nullable = false, length = 100)
     private String password;
-
-    // 전화번호
-    @Column(name = "phone_number", nullable = false, length = 20)
-    private String phoneNumber;
 }
