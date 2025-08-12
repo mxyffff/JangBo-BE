@@ -19,9 +19,10 @@ public class Customer extends BaseTimeEntity {
 
     // 기본키, auto_increment 설정
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "customer_id")
     private Long id;
 
-    // username (닉네임, 로그인 id는 email 사용)
+    // username (닉네임, 로그인 id는 email  사용)
     @Column(nullable = false, length = 30)
     private String username;
 
