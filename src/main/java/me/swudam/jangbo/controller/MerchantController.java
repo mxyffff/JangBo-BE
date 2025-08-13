@@ -3,82 +3,151 @@ package me.swudam.jangbo.controller;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import me.swudam.jangbo.dto.MerchantFormDto;
-import me.swudam.jangbo.entity.Category;
 import me.swudam.jangbo.entity.Merchant;
 import me.swudam.jangbo.service.MerchantService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+import java.util.HashMap;
+import java.util.Map;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.AuthenticationException;
 
 // [온보딩] 상인
-@RequestMapping("/merchants")
-@Controller
+@RequestMapping("api/merchants")
+@RestController
 @RequiredArgsConstructor
 public class MerchantController {
-    private final MerchantService merchantService;
-    private final PasswordEncoder passwordEncoder;
 
-    // 회원가입
-    // Get
-    @GetMapping(value="/new") // 요청 시 회원가입 폼 페이지로 이동
-    public String merchantForm(Model model){
-        model.addAttribute("merchantFormDto", new MerchantFormDto());
-        model.addAttribute("categories", Category.values()); // enum 배열 전달
-        return "merchant/merchantForm";
-    }
+    private final MerchantService merchantService; // 상인 관련 로직
+    private final PasswordEncoder passwordEncoder; // 비밀번호 암호화/검증
+    private final AuthenticationManager authenticationManager; // 로그인 인증 처리
 
-    // Post
-    @PostMapping(value="/new") // submit 버튼 누르면 호출되어 회원 생성
-    public String merchantForm(@Valid MerchantFormDto merchantFormDto, BindingResult bindingResult,
-                               Model model, HttpSession session){
-        // DTO 유효성 검사 실패 시
-        if(bindingResult.hasErrors()){
-            model.addAttribute("categories", Category.values());
-            return "merchant/merchantForm";
-        }
+    /* 1. 회원가입 API */
+    // 상인 회원가입 API
+    // POST - /api/merchants/signup
+    @PostMapping("/signup")
+    public ResponseEntity<?> signup(@Valid @RequestBody MerchantFormDto merchantFormDto, HttpSession httpSession){
 
-        // 비밀번호와 비밀번호 재입력 불일치 체크
+        // 1-1. 비밀번호 & 비밀번호 확인 검증
         if (!merchantFormDto.getPassword().equals(merchantFormDto.getPasswordConfirm())) {
-            model.addAttribute("categories", Category.values());
-            bindingResult.rejectValue("passwordConfirm", "error.passwordConfirm", "비밀번호가 일치하지 않습니다.");
-            return "merchant/merchantForm";
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of(
+                            "created", false,
+                            "message","비밀번호가 일치하지 않습니다."
+                    ));
         }
-
         try{
+            // 1-2. DTO → Entity 변환 및 비밀번호 암호화 적용
             Merchant merchant = Merchant.createMerchant(merchantFormDto, passwordEncoder);
+
+            // 1-3. DB 저장
             merchantService.saveMerchant(merchant);
 
-            // 회원가입 성공 시 세션 플래그 설정 - 상점 등록 페이지 접근 허용
-            session.setAttribute("justRegisteredMerchant", true);
-            // 상점 등록할 때 authenticatino이 없으면 세션에서 이메일을 꺼내 쓰도록
-            session.setAttribute("justRegisteredMerchantEmail", merchant.getEmail()); // 이메일도 같이 저장
+            // 1-4. 세션에 가입 직후 상태를 저장
+            httpSession.setAttribute("justRegisteredMerchant", true);
+            httpSession.setAttribute("justRegisteredMerchantEmail", merchant.getEmail());
 
-        } catch(IllegalStateException e){ // 중복 회원 가입 예외 발생 시 예러 메시지를 뷰로 전달
-            model.addAttribute("categories", Category.values());
-            model.addAttribute("errorMessage", e.getMessage());
-            return "merchant/merchantForm";
+            // 1-5. 응답 데이터 구성
+            Map<String, Object> body = new HashMap<>();
+            body.put("created", true);
+            body.put("merchantId", merchant.getId()); // DB에 저장된 ID
+            body.put("email", merchant.getEmail()); // 가입한 이메일
+
+            // 1-6. 201 Created 응답
+            return ResponseEntity.status(HttpStatus.CREATED).body(body);
+
+        } catch (IllegalStateException e){
+            // 1-7. 중복 회원 가입 등 예외 처리
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of(
+                            "created", false,
+                            "message", e.getMessage()
+                    ));
         }
-
-        System.out.println("[회원가입 성공] justRegisteredMerchant 플래그 세션에 저장: " + session.getAttribute("justRegisteredMerchant"));
-        return "redirect:/stores/new"; // 회원가입 성공 시 상점 등록으로 이동
     }
 
-    // 로그인
-    // Get
-    @GetMapping("/login") // 요청 시 로그인 폼 페이지로 이동
-    public String loginMerchant(Model model){
-        return "merchant/merchantLoginForm";
+    // 2. 이메일 중복 체크
+    // GET - /api/merchants/exists/email?value={email}
+    @GetMapping("/exists/email")
+    public ResponseEntity<?> existsEmail(@RequestParam("value") String email) {
+        boolean exists = merchantService.existsEmail(email); // 중복 여부 확인
+        return ResponseEntity.ok(Map.of("exists", exists));
     }
 
-    // Get
-    @GetMapping("/login/error") // 로그인 실패한 경우
-    public String loginMerchantError(Model model){
-        model.addAttribute("errorMessage", "이메일 또는 비밀번호를 확인해주세요.");
-        return "merchant/merchantLoginForm"; // 실패 시 다시 로그인 창으로 이동
+    // 3. 공통 예외 처리 핸들러
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<?> handleIllegalArgument(IllegalArgumentException e) {
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(Map.of(
+                        "created", false,
+                        "message", e.getMessage()
+                ));
+    }
+
+    /* 4. 로그인 API */
+    // 상인 로그인 API
+    // POST - /api/merchants/login
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody Map<String, String> request, HttpSession session) {
+        String email = request.get("email"); // 요청 바디에서 이메일 추출
+        String password = request.get("password"); // 요청 바디에서 비밃번호 추출
+
+        // 디버그 로그
+        System.out.println("POST /login 요청 값:");
+        System.out.println("입력 이메일: '" + email + "'");
+        System.out.println("입력 비밀번호: '" + password + "'");
+
+        try {
+            // 4-1. Spring Security 인증 시도
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, password)
+            );
+
+            // 4-2. 인증 성공 시,
+            SecurityContextHolder.getContext().setAuthentication(authentication); // SecurityContext에 저장
+            session.setAttribute("merchantEmail", email); // 세션에 상인 이메일 저장
+
+            // 4-3. 성공 응답
+            return ResponseEntity.ok(Map.of(
+                    "loggedIn", true,
+                    "email", email
+            ));
+
+        } catch (BadCredentialsException e) {
+            // 4-4. 이메일/비밀번호 불일치
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "loggedIn", false,
+                    "message", "이메일 또는 비밀번호가 잘못되었습니다."
+            ));
+        } catch (AuthenticationException e) {
+            // 4-5. 그 외 인증 실패
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "loggedIn", false,
+                    "message", "로그인 실패"
+            ));
+        }
+    }
+
+    /* 5. 로그아웃 API */
+    // 상인 로그아웃 API
+    // POST - /api/merchants/logout
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpSession session) {
+        session.invalidate(); // 5-1. 세션 초기화
+        SecurityContextHolder.clearContext(); // 5-2. 시큐리티 인증 정보도 초기화
+        return ResponseEntity.ok(Map.of(
+                "loggedOut", true,
+                "message", "로그아웃 성공"
+        ));
     }
 }

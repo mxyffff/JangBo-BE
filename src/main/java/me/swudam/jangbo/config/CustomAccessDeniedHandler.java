@@ -1,18 +1,39 @@
 package me.swudam.jangbo.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 
-// 로그인은 했으나 접근(인가) 권한이 없을 때 (403 Forbidden)
+import java.io.IOException;
+import java.util.Map;
+
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @Override
-    public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException)
+    public void handle(HttpServletRequest request, HttpServletResponse response,
+                       AccessDeniedException accessDeniedException)
             throws IOException, ServletException {
-        // 에러 처리 로직
-        response.sendRedirect("/merchants/login/error"); // 권한이 없는 경우 error 페이지로 리다이렉트
+
+        // HTTP 상태 코드 403
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+
+        // 응답 데이터
+        Map<String, Object> body = Map.of(
+                "authenticated", true,
+                "authorized", false,
+                "message", "접근 권한이 없습니다.",
+                "path", request.getRequestURI()
+        );
+
+        // JSON 직렬화 후 응답
+        objectMapper.writeValue(response.getWriter(), body);
     }
 }

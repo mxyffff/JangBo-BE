@@ -1,22 +1,38 @@
 package me.swudam.jangbo.config;
 
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Map;
 
-// Spring Security에서 인증되지 않은 사용자가 접근했을 때
+// 인증되지 않은 사용자가 접근했을 때 JSON 반환
 public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
     @Override
-    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authenticationException)
+    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException)
             throws IOException, ServletException {
-        if ("XMLHttpRequest".equals(request.getHeader("x-requested-with"))) { // 요청 헤더 값 확인
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"); // AJAX 요청이면 401(Unauthorized) 응답
-        } else{ // AJAX 요청이 아니라면 (브라우저에서 직접 요청한 경우)
-            response.sendRedirect("/merchants/login"); // 페이지 리다이렉트
-        }
+
+        // JSON 응답 설정
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding("UTF-8");
+
+        // 응답 바디 구성
+        Map<String, Object> body = Map.of(
+                "authenticated", false,
+                "message", "인증이 필요합니다.",
+                "path", request.getRequestURI()
+        );
+
+        // JSON 직렬화 후 출력
+        objectMapper.writeValue(response.getWriter(), body);
     }
 }

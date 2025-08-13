@@ -26,12 +26,6 @@ public class Merchant {
 
     private String password; // 비밀번호
 
-    @Column(unique = true)
-    private String phoneNumber; // 전화번호
-
-    @Column(unique = true)
-    private String businessNumber; // 사업자등록번호
-
     public static Merchant createMerchant(MerchantFormDto merchantFormDto, PasswordEncoder passwordEncoder) {
         Merchant merchant = new Merchant();
 
@@ -40,9 +34,6 @@ public class Merchant {
 
         String pwd = passwordEncoder.encode(merchantFormDto.getPassword()); // 비밀번호
         merchant.setPassword(pwd);
-
-        merchant.setPhoneNumber(merchantFormDto.getPhoneNumber()); // 전화번호
-        merchant.setBusinessNumber(merchantFormDto.getBusinessNumber()); // 사업자등록번호
 
         return merchant;
     }

@@ -1,9 +1,6 @@
 package me.swudam.jangbo.dto;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
 import me.swudam.jangbo.entity.Category;
@@ -22,18 +19,17 @@ public class MerchantFormDto {
 
     @NotBlank(message = "비밀번호는 필수 입력 값입니다.")
     @Length(min = 8, max = 16, message = "비밀번호는 8~16자로 입력해주세요.")
-    @Pattern(
-            regexp = "^(?=.*[!\"#$%&'()*+,-./:;<=>?@\\[\\]₩^_`{|}~])[A-Za-z0-9!\"#$%&'()*+,-./:;<=>?@\\[\\]₩^_`{|}~]{8,16}$",
-            message = "비밀번호는 8~16자의 영문 대소문자, 숫자, 특수문자 조합이어야 하며, 특수문자는 최소 1자 이상 포함해야 합니다."
-    )
     private String password;
 
     @NotBlank(message = "비밀번호 확인은 필수 입력 값입니다.")
     private String passwordConfirm;
 
-    @NotBlank(message = "전화번호는 필수 입력 값입니다.")
-    private String phoneNumber;
-
-    @NotBlank(message = "사업자등록번호는 필수 입력 값입니다.")
-    private String businessNumber;
+    // PasswordValidator 유틸로 검증
+    @AssertTrue(message = "비밀번호는 8~16자이며, 허용 특수문자 8자( ! # $ % & * @ ^ ) 중 최소 1개를 포함해야 합니다.")
+    public boolean isPasswordPolicySatisfied() {
+        // PasswordValidator는 별도 유틸 고정 구현으로 가정
+        // null 대응: @NotBlank에서 이미 차단되지만, 혹시 모를 NPE 방지
+        if (password == null) return false;
+        return me.swudam.jangbo.util.PasswordValidator.isValid(password);
+    }
 }

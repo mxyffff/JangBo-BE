@@ -4,122 +4,120 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import me.swudam.jangbo.dto.StoreFormDto;
-import me.swudam.jangbo.entity.Category;
-import me.swudam.jangbo.entity.DayOff;
 import me.swudam.jangbo.entity.Merchant;
 import me.swudam.jangbo.repository.MerchantRepository;
-import me.swudam.jangbo.repository.StoreRepository;
 import me.swudam.jangbo.service.StoreService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-@RequestMapping("/stores")
-@Controller
+import java.util.HashMap;
+import java.util.Map;
+
+@RequestMapping("api/stores")
+@RestController
 @RequiredArgsConstructor
 public class StoreController {
-    private final StoreRepository storeRepository;
-    private final StoreService storeService;
-    private final MerchantRepository merchantRepository;
 
-    // 상점등록
-    // Get
-    @GetMapping("/new")
-    public String storeForm(Model model, HttpSession session) {
-        // 세션 플래그 로직
-        // 회원가입 직후 한 번만 접근 가능하고, 새로고침이나 직접 URl 접근은 불가능!
-        Boolean justRegistered = (Boolean) session.getAttribute("justRegisteredMerchant");
-        if (justRegistered == null || !justRegistered) {
-            return "redirect:/";
-        }
+    private final StoreService storeService; // 상인 로직
+    private final MerchantRepository merchantRepository; // 상인 조회용
 
-        model.addAttribute("storeFormDto", new StoreFormDto());
-        model.addAttribute("categories", Category.values()); // enum 배열 전달
-        model.addAttribute("dayOffOptions", DayOff.values()); // 휴무요일 배열 전달
-        return "store/storeForm";
-    }
-
-    // Post
-    @PostMapping("/new")
-    public String storeForm(@Valid StoreFormDto storeFormDto, BindingResult bindingResult,
-                            Model model, Authentication authentication,
-                            @RequestParam("storeImage") MultipartFile storeImage,
-                            HttpSession session) {
-
-        // 테스트용
-        System.out.println("===== [상점 등록 시작] =====");
-        System.out.println("현재 세션 ID: " + session.getId());
-        System.out.println("폼 입력값: " + storeFormDto);
-        System.out.println("로그인 Principal: " + authentication);
-        System.out.println("이메일: " + (authentication != null ? authentication.getPrincipal() : "null"));
-        System.out.println("업로드 파일명: " + (storeImage != null ? storeImage.getOriginalFilename() : "null"));
-        System.out.println("파일 비었는지: " + (storeImage != null && storeImage.isEmpty()));
-
-        Boolean justRegistered = (Boolean) session.getAttribute("justRegisteredMerchant");
+    // 1. 상점 등록 API
+    // POST - /api/stores
+    @PostMapping
+    public ResponseEntity<?> createStore(@Valid @ModelAttribute StoreFormDto storeFormDto,
+                                         @RequestParam(value="storeImage", required = false) MultipartFile storeImage,
+                                         HttpSession httpSession, Authentication authentication){
+        // 1-1. 세션에 저장된 '가입 직후' 여부 확인 (justRegisteredMerchant)
+        Boolean justRegistered = (Boolean) httpSession.getAttribute("justRegisteredMerchant");
         String email = null;
 
-        if (authentication != null) {
+        // 1-2. 로그인 정보에서 이메일 추출 (로그인 상태인 경우)
+        if(authentication != null){
             Object principal = authentication.getPrincipal();
-            if (principal instanceof User) {
-                email = ((User) principal).getUsername();
-            } else if (principal instanceof String) {
-                email = (String) principal;
+            if(principal instanceof User user){
+                email = user.getUsername(); // UserDetails 타입에서 username(=email) 획득
+            } else if (principal instanceof String s){
+                email = s; // 간혹 String 타입인 경우를 대비하여
             }
         }
 
-        // 로그인 정보 없으면 세션에서 이메일 가져오기
-        if (email == null && justRegistered != null && justRegistered) {
-            email = (String) session.getAttribute("justRegisteredMerchantEmail");
-            System.out.println("[세션에서 가져온 이메일] " + email);
+        // 1-3. 인증 정보 없으면,
+        // 세션에 가입 직후 이메일이 있으면 그것으로 대체
+        if (email == null && Boolean.TRUE.equals(justRegistered)){
+            email = (String) httpSession.getAttribute("justRegisteredMerchantEmail");
         }
-
-        if (email == null) {
-            System.out.println("이메일 정보가 없어 상점 등록 불가");
-            return "redirect:/merchants/login";
+        // 1-4. 이메일 없으면 인증 실패 401 반환
+        if (email == null){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of(
+                            "created", false,
+                            "message", "로그인이 필요합니다."
+                    ));
         }
+        // 1-5. 이미지가 아닌 파일인지
+        if (storeImage != null && !storeImage.isEmpty()) {
+            String contentType = storeImage.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "created", false,
+                        "message", "이미지 파일만 업로드 가능합니다."
+                ));
+            }
+        }
+        try{
+            // 1-6. 이메일로 상인 조회 (유효한 로그인 정보인지 확인)
+            Merchant merchant = merchantRepository.findByEmail(email);
+            if(merchant == null){
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of(
+                                "created", false,
+                                "message", "유효하지 않은 로그인 정보입니다."
+                        ));
+            }
 
-        try {
-            Merchant merchant = merchantRepository.findByEmail(email); // DB에서 다시 조회
-            System.out.println("DB에서 조회한 Merchant: " + merchant);
-
-            if (merchant == null) throw new IllegalStateException("로그인 정보가 올바르지 않습니다.");
-
+            // 1-7. 상점 저장 로직
             Long storeId = storeService.saveStore(storeFormDto, merchant, storeImage);
-            System.out.println("저장된 상점 ID: " + storeId);
 
-            // 상점 등록 성공 시 세션에 저장한 이메일도 제거
-            session.removeAttribute("justRegisteredEmail");
+            // 1-8. 가입 직후 세션 값 제거 (1회성)
+            httpSession.removeAttribute("justRegisteredMerchant");
+            httpSession.removeAttribute("justRegisteredMerchantEmail");
 
-        } catch (IllegalStateException e) {
-            System.out.println("상태 예외 발생: " + e.getMessage());
-            model.addAttribute("categories", Category.values());
-            model.addAttribute("dayOffOptions", DayOff.values());
-            model.addAttribute("errorMessage", e.getMessage());
-            return "store/storeForm";
-        } catch (Exception e) {
-            System.out.println("기타 예외 발생: " + e.getMessage());
-            e.printStackTrace(); // 발생한 예외
-            model.addAttribute("errorMessage", "이미지 업로드 중 오류가 발생했습니다.");
-            model.addAttribute("categories", Category.values());
-            model.addAttribute("dayOffOptions", DayOff.values());
-            return "store/storeForm";
+            // 1-9. 성공 응답 데이터
+            Map<String, Object> body = new HashMap<>();
+            body.put("created", true);
+            body.put("storeId", storeId);
+
+            // 1-10. 201 Created
+            return ResponseEntity.status(HttpStatus.CREATED).body(body);
+
+        } catch (IllegalStateException e){ // 1-11. 400 Bad Request
+            return ResponseEntity.badRequest().body(Map.of(
+                    "created", false,
+                    "message", e.getMessage()
+            ));
+        } catch (Exception e){ // 1-12. 500 서버 에러
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                    "created", false,
+                    "message", "이미지 업로드 또는 저장 중 오류가 발생했습니다.",
+                    "error", e.getMessage()
+            ));
         }
-
-        // 상점 등록 성공 후 세션 플래그와 이메일 제거 (1회성)
-        if (justRegistered != null && justRegistered) {
-            session.removeAttribute("justRegisteredMerchant");
-            session.removeAttribute("justRegisteredMerchantEmail");
-        }
-
-        System.out.println("===== [상점 등록 완료] =====");
-        return "redirect:/"; // 성공 시 메인 페이지로 리다이렉트. 추후 한 줄 소개 글 AI로 이동하도록
     }
 }
+
+/*
+전체 흐름 요약
+상점 등록
+   - 세션에서 '가입 직후' 상태 확인
+   - 로그인 상태라면 Authentication에서 이메일 획득
+   - 인증 정보 없으면 세션 '가입 직후' 이메일 사용
+   - 이메일 없으면 401 반환
+   - 이메일로 상인 조회
+   - StoreService로 상점 저장
+   - 세션 '가입 직후' 정보 제거 (1회성)
+   - 성공/실패 응답 반환
+*/

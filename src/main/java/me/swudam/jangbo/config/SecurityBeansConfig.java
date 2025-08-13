@@ -2,22 +2,29 @@ package me.swudam.jangbo.config;
 
 import lombok.RequiredArgsConstructor;
 import me.swudam.jangbo.security.CustomerUserDetailsService;
+import me.swudam.jangbo.security.MerchantUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.Arrays;
 
 @Configuration
 @RequiredArgsConstructor
 public class SecurityBeansConfig {
 
-    private final CustomerUserDetailsService customerUserDetailsService;
-    private final PasswordEncoder passwordEncoder; // CustormerInfraConfig에 Bcrypt 등록되어 있음
+    private final PasswordEncoder passwordEncoder;
 
-    @Bean
+    private final CustomerUserDetailsService customerUserDetailsService;
+    private final MerchantUserDetailsService merchantUserDetailsService;
+
+    @Bean("customerDaoAuthProvider")
     public AuthenticationProvider customerDaoAuthProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(customerUserDetailsService);
@@ -25,9 +32,22 @@ public class SecurityBeansConfig {
         return provider;
     }
 
+    @Bean("merchantDaoAuthProvider")
+    public AuthenticationProvider merchantDaoAuthProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(merchantUserDetailsService);
+        provider.setPasswordEncoder(passwordEncoder);
+        return provider;
+    }
+
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
-        // AuthenticationConfiguration이 위 provider를 인지해서 AuthenticationManager를 만들어줌
-        return configuration.getAuthenticationManager();
+    public AuthenticationManager authenticationManager() {
+        return new ProviderManager(
+                Arrays.asList(
+                        customerDaoAuthProvider(), // 로그인 시 우선 시도
+                        merchantDaoAuthProvider() // (실패 시) 다음 순서로 시도
+                )
+        );
+
     }
 }

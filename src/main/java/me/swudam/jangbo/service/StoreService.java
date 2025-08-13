@@ -36,29 +36,39 @@ public class StoreService {
 
     // 이미지 포함하여 Store 저장 로직
     public Long saveStore(StoreFormDto storeFormDto, Merchant merchant,
-                          MultipartFile storeImage) throws Exception {
-        // 상점 등록 시 merchant_id가 들어가도록 하기 위함
+                          MultipartFile storeImage) {
+        // 상점 등록 시 Merchant 조회 + 예외
         Merchant managedMerchant = merchantRepository.findById(merchant.getId())
-                .orElseThrow(() -> new RuntimeException("상인을 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalStateException("상인을 찾을 수 없습니다."));
 
+        // 규칙 검증
         validateDayOff(storeFormDto);
 
+        // Store 생성
         Store store = Store.createStore(storeFormDto, managedMerchant);
 
+        // 이미지 저장
         if (storeImage != null && !storeImage.isEmpty()) {
-            UUID uuid = UUID.randomUUID();
-            String fileName = uuid.toString() + "-" + storeImage.getOriginalFilename();
-            File storeImgFile = new File(uploadPath, fileName);
-            storeImage.transferTo(storeImgFile);
+            try {
+                UUID uuid = UUID.randomUUID();
+                String fileName = uuid + "-" + storeImage.getOriginalFilename();
+                File storeImgFile = new File(uploadPath, fileName);
+                storeImage.transferTo(storeImgFile);
 
-            // 엔티티 필드에 맞춰 저장
-            store.setStoreImg(fileName);
-            store.setStoreImgPath(uploadPath + "/" + fileName);
+                store.setStoreImg(fileName);
+                store.setStoreImgPath(uploadPath + "/" + fileName);
+            } catch (Exception e) {
+                throw new IllegalStateException("이미지 저장 중 오류가 발생했습니다.");
+            }
         }
 
-        // 변경 사항 저장
         storeRepository.save(store);
-
         return store.getId();
+    }
+
+    @Transactional(readOnly = true)
+    public Store getStoreById(Long id) {
+        return storeRepository.findById(id)
+                .orElseThrow(() -> new IllegalStateException("상점을 찾을 수 없습니다."));
     }
 }

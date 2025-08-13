@@ -1,53 +1,66 @@
 package me.swudam.jangbo.config;
 
+import lombok.RequiredArgsConstructor;
+import me.swudam.jangbo.security.MerchantUserDetailsService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
-// Spring Security 설정
+// 상인 전용 Spring Security Config 설정
+// Order(1)로 먼저 적용
 @Configuration
-@EnableWebSecurity
+@RequiredArgsConstructor
 public class MerchantSecurityConfig {
 
+    // 상인 계정 정보를 로드하는 서비스
+    private final MerchantUserDetailsService merchantUserDetailsService;
+    // 비밀번호 암호화
+    private final PasswordEncoder passwordEncoder;
+
+    @Qualifier("merchantDaoAuthProvider")
+    private final AuthenticationProvider merchantDaoAuthProvider;
+
+    // 상인 API 전용 Security Filter Chain
     @Bean
     @Order(1) // 먼저 매칭되도록
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, me.swudam.jangbo.filter.StoreRegistrationAuthenticationFilter storeRegistrationAuthenticationFilter) throws Exception {
         http
-                .securityMatcher("/merchants/**") // 해당 체인은 merchant/**에만 적용
-                // 로그인
-                .formLogin(form -> form
-                        .loginPage("/merchants/login")
-                        .defaultSuccessUrl("/")
-                        .usernameParameter("email")
-                        .failureUrl("/merchants/login/error")
-                )
-                // 로그아웃
-                .logout(logout -> logout
-                        .logoutRequestMatcher(new AntPathRequestMatcher("/merchants/logout"))
-                        .logoutSuccessUrl("/")
-                )
-                // 보안 검사
-                .authorizeHttpRequests(requests -> requests
-                        .requestMatchers("/merchants/new").permitAll() // 회원가입 페이지는 누구나 접근 가능
-                        .requestMatchers("/merchants/login").anonymous() // 로그인 페이지 : 로그인하지 않은 사용자만
-                        .requestMatchers("/merchants/logout").authenticated() // 로그아웃 페이지 : 로그인한 사용자만
-                        .requestMatchers(HttpMethod.GET, "/stores/new").permitAll() // GET은 모두 허용
-                        .requestMatchers(HttpMethod.POST, "/stores/new").permitAll() // POST 요청은 세션 플래그로 관리 - 상점 등록 페이지
-                        .anyRequest().permitAll()
-                )
-                // 인증 실패시 대처 방법 커스텀
-                .exceptionHandling(error -> error
-                        .authenticationEntryPoint(new CustomAuthenticationEntryPoint())
-                        .accessDeniedHandler(new CustomAccessDeniedHandler()) // 403 에러 핸들링
-                );
+                .securityMatcher("/api/merchants/**", "/api/stores/**")
+                .authenticationProvider(merchantDaoAuthProvider)
 
-        // Postman 테스트용 CSRF 토큰 비활성화
-        //http.csrf(csrf -> csrf.disable());
+                .formLogin(form -> form.disable()) // HTML 기반 로그인 완전히 비활성화
+                .httpBasic(basic -> basic.disable()) // Basic Auth도 사용 안 함
+                .csrf(csrf -> csrf.disable()) // API는 CSRF 토큰 X
+
+                .authorizeHttpRequests(requests -> requests
+                        // 회원가입/중복체크/로그인/로그아웃 API 허용
+                        .requestMatchers(HttpMethod.POST, "/api/merchants/signup").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/merchants/exists/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/merchants/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/merchants/logout").permitAll()
+
+                        // 상점 조회 API는 누구나 가능
+                        .requestMatchers(HttpMethod.GET, "/api/stores/**").permitAll()
+
+                        // 상점 등록 API는 인증 필요
+                        .requestMatchers(HttpMethod.POST, "/api/stores").authenticated()
+
+                        // 그 외 API는 인증
+                        .anyRequest().authenticated()
+                )
+                // 인증/권한 예외 핸들링
+                .exceptionHandling(error -> error
+                        .authenticationEntryPoint(new CustomAuthenticationEntryPoint()) // 401 인증 실패 JSON 응답
+                        .accessDeniedHandler(new CustomAccessDeniedHandler()) // 403 JSON 응답
+                )
+                // 상점 등록 세션 Postman API 테스트용
+                .addFilterBefore(storeRegistrationAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

@@ -1,5 +1,7 @@
 package me.swudam.jangbo.config;
 
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -10,12 +12,16 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
+@RequiredArgsConstructor
 public class CustomerApiSecurityConfig {
+
+    @Qualifier("customerDaoAuthProvider")
+    private final AuthenticationProvider customerDaoAuthProvider;
+
     @Bean
     @Order(2) // merchant 체인 다음 우선순위
     public SecurityFilterChain customerApiFilterChain(
-            HttpSecurity http,
-            AuthenticationProvider customerDaoAuthProvider // 빈을 파라미터로 주입
+            HttpSecurity http
     ) throws Exception {
         http
                 .securityMatcher("/api/**") // 이 체인은 /api/**에만 적용
