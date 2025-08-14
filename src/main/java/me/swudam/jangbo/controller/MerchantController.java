@@ -4,11 +4,14 @@ import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import me.swudam.jangbo.dto.MerchantFormDto;
 import me.swudam.jangbo.entity.Merchant;
+import me.swudam.jangbo.repository.MerchantRepository;
 import me.swudam.jangbo.service.MerchantService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.HashMap;
@@ -28,12 +31,13 @@ public class MerchantController {
     private final MerchantService merchantService; // 상인 관련 로직
     private final PasswordEncoder passwordEncoder; // 비밀번호 암호화/검증
     private final AuthenticationManager authenticationManager; // 로그인 인증 처리
+    private final MerchantRepository merchantRepository;
 
     /* 1. 회원가입 API */
     // 상인 회원가입 API
     // POST - /api/merchants/signup
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@Valid @RequestBody MerchantFormDto merchantFormDto, HttpSession httpSession){
+    public ResponseEntity<?> signup(@Valid @RequestBody MerchantFormDto merchantFormDto, HttpSession httpSession) {
 
         // 1-1. 비밀번호 & 비밀번호 확인 검증
         if (!merchantFormDto.getPassword().equals(merchantFormDto.getPasswordConfirm())) {
@@ -41,10 +45,10 @@ public class MerchantController {
                     .badRequest()
                     .body(Map.of(
                             "created", false,
-                            "message","비밀번호가 일치하지 않습니다."
+                            "message", "비밀번호가 일치하지 않습니다."
                     ));
         }
-        try{
+        try {
             // 1-2. DTO → Entity 변환 및 비밀번호 암호화 적용
             Merchant merchant = Merchant.createMerchant(merchantFormDto, passwordEncoder);
 
@@ -64,7 +68,7 @@ public class MerchantController {
             // 1-6. 201 Created 응답
             return ResponseEntity.status(HttpStatus.CREATED).body(body);
 
-        } catch (IllegalStateException e){
+        } catch (IllegalStateException e) {
             // 1-7. 중복 회원 가입 등 예외 처리
             return ResponseEntity
                     .badRequest()
@@ -102,22 +106,25 @@ public class MerchantController {
         String email = request.get("email"); // 요청 바디에서 이메일 추출
         String password = request.get("password"); // 요청 바디에서 비밃번호 추출
 
-        // 디버그 로그
-        System.out.println("POST /login 요청 값:");
-        System.out.println("입력 이메일: '" + email + "'");
-        System.out.println("입력 비밀번호: '" + password + "'");
-
         try {
-            // 4-1. Spring Security 인증 시도
+            // Spring Security 인증 시도
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(email, password)
             );
 
-            // 4-2. 인증 성공 시,
-            SecurityContextHolder.getContext().setAuthentication(authentication); // SecurityContext에 저장
-            session.setAttribute("merchantEmail", email); // 세션에 상인 이메일 저장
+            // 인증 성공 시 SecurityContext에 저장
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            // 4-3. 성공 응답
+            // 세션에 SecurityContext 저장
+            session.setAttribute(
+                    HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                    SecurityContextHolder.getContext()
+            );
+
+            // Postman 테스트용 이메일 저장
+            session.setAttribute("merchantEmail", email);
+
+            // 성공 응답
             return ResponseEntity.ok(Map.of(
                     "loggedIn", true,
                     "email", email
@@ -149,5 +156,60 @@ public class MerchantController {
                 "loggedOut", true,
                 "message", "로그아웃 성공"
         ));
+    }
+
+    /* 6. 현재 로그인 여부 / 상인 정보 */
+    // GET - /api/merchants/me
+    @GetMapping("/me")
+    public ResponseEntity<?> me(HttpSession session) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = null;
+
+        // 1. SecurityContext에서 인증 정보 가져오기
+        if (auth != null && auth.isAuthenticated() && !isAnonymous(auth)) {
+            Object principal = auth.getPrincipal();
+            email = (principal instanceof UserDetails userDetails)
+                    ? userDetails.getUsername()
+                    : principal.toString();
+        }
+
+        // 2. SecurityContext가 비어있으면, 일반 로그인 세션 확인
+        if (email == null) {
+            email = (String) session.getAttribute("merchantEmail");
+        }
+
+        // 3. 그래도 없으면, 1회성 가입 직후 세션 확인
+        if (email == null) {
+            Boolean justRegistered = (Boolean) session.getAttribute("justRegisteredMerchant");
+            if (Boolean.TRUE.equals(justRegistered)) {
+                email = (String) session.getAttribute("justRegisteredMerchantEmail");
+            }
+        }
+
+        // 4. 이메일 없으면 인증 실패
+        if (email == null) {
+            return ResponseEntity.ok(Map.of(
+                    "authenticated", false,
+                    "message", "로그인이 필요합니다."
+            ));
+        }
+
+        // 5. DB에서 상인 정보 조회
+        Merchant merchant = merchantRepository.findByEmail(email);
+        Map<String, Object> body = new HashMap<>();
+        body.put("authenticated", true);
+        body.put("email", email);
+
+        if (merchant != null) {
+            body.put("merchantId", merchant.getId());
+            body.put("username", merchant.getUsername());
+        }
+
+        return ResponseEntity.ok(body);
+    }
+
+    private boolean isAnonymous(Authentication auth) {
+        String name = auth.getName();
+        return name == null || "anonymousUser".equals(name);
     }
 }
