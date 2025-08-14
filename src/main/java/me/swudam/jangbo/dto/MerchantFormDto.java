@@ -3,7 +3,6 @@ package me.swudam.jangbo.dto;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
-import me.swudam.jangbo.entity.Category;
 import org.hibernate.validator.constraints.Length;
 
 // [온보딩] 상인

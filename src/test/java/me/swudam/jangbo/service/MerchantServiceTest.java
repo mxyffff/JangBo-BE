@@ -30,8 +30,6 @@ class MerchantServiceTest {
         merchantFormDto.setUsername("김슈니");
         merchantFormDto.setEmail("swu@gmail.com");
         merchantFormDto.setPassword("password!");
-        merchantFormDto.setPhoneNumber("010-1234-5678");
-        merchantFormDto.setBusinessNumber("123-4567-8900");
 
         Merchant merchant = Merchant.createMerchant(merchantFormDto, passwordEncoder);
         return merchant;
@@ -47,8 +45,6 @@ class MerchantServiceTest {
         assertEquals(merchant1.getUsername(), merchant2.getUsername());
         assertEquals(merchant1.getEmail(), merchant2.getEmail());
         assertEquals(merchant1.getPassword(), merchant2.getPassword());
-        assertEquals(merchant1.getPhoneNumber(), merchant2.getPhoneNumber());
-        assertEquals(merchant1.getBusinessNumber(), merchant2.getBusinessNumber());
     }
 
     @Test

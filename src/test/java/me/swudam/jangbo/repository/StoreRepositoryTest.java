@@ -34,15 +34,12 @@ class StoreRepositoryTest {
         merchant.setUsername("상점주인");
         merchant.setEmail("owner@gmail.com");
         merchant.setPassword("password!");
-        merchant.setPhoneNumber("010-0000-0000");
-        merchant.setBusinessNumber("000-0000-00000");
         merchantRepository.save(merchant);
 
         // Store 생성
         Store store = new Store();
         store.setStoreName("맛집");
         store.setStoreAddress("서울시 강남구");
-        store.setBusinessHours("09:00-18:00");
         store.setDayOff(Set.of(DayOff.MONDAY, DayOff.WEDNESDAY));
         store.setStorePhoneNumber("02-1234-5678");
         store.setCategory(Category.수산);

@@ -26,8 +26,6 @@ class MerchantRepositoryTest {
         merchant.setUsername("김슈니");
         merchant.setEmail("swu@gmail.com");
         merchant.setPassword("password!");
-        merchant.setPhoneNumber("010-1234-5678");
-        merchant.setBusinessNumber("123-4567-8900");
 
         // memberRepository의 save 메서드 사용해서 해당 객체 저장
         Merchant savedMerchant = merchantRepository.save(merchant);

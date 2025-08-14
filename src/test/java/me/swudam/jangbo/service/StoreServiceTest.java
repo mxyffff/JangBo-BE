@@ -42,8 +42,6 @@ class StoreServiceTest {
         merchant.setUsername("테스트상점주");
         merchant.setEmail("testowner@gmail.com");
         merchant.setPassword("password!");
-        merchant.setPhoneNumber("010-1234-5678");
-        merchant.setBusinessNumber("000-0000-00000");
         return merchantRepository.save(merchant);
     }
 
@@ -52,7 +50,6 @@ class StoreServiceTest {
         StoreFormDto storeFormDto = new StoreFormDto();
         storeFormDto.setStoreName("테스트 상점");
         storeFormDto.setStoreAddress("서울시 종로구");
-        storeFormDto.setBusinessHours("10:00-19:00");
         storeFormDto.setDayOff(List.of(DayOff.FRIDAY, DayOff.MONDAY)); // ALWAYS_OPEN으로 바꾸면 테스트 실패(상점 등록 안 됨)
         storeFormDto.setStorePhoneNumber("02-9876-5432");
         storeFormDto.setCategory(Category.야채);
@@ -72,7 +69,6 @@ class StoreServiceTest {
         assertNotNull(savedStore);
         assertEquals(storeFormDto.getStoreName(), savedStore.getStoreName());
         assertEquals(storeFormDto.getStoreAddress(), savedStore.getStoreAddress());
-        assertEquals(storeFormDto.getBusinessHours(), savedStore.getBusinessHours());
         assertEquals(storeFormDto.getStorePhoneNumber(), savedStore.getStorePhoneNumber());
         assertEquals(storeFormDto.getCategory(), savedStore.getCategory());
         assertEquals(2, savedStore.getDayOff().size());

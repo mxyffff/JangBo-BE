@@ -9,6 +9,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -38,6 +39,11 @@ public class MerchantSecurityConfig {
                 .httpBasic(basic -> basic.disable()) // Basic Auth도 사용 안 함
                 .csrf(csrf -> csrf.disable()) // API는 CSRF 토큰 X
 
+                // 로그인 시 세션이 필요하면 만들고, 필요 없으면 만들지 않음 (REQUIRED)
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                )
+
                 .authorizeHttpRequests(requests -> requests
                         // 회원가입/중복체크/로그인/로그아웃 API 허용
                         .requestMatchers(HttpMethod.POST, "/api/merchants/signup").permitAll()
@@ -48,8 +54,11 @@ public class MerchantSecurityConfig {
                         // 상점 조회 API는 누구나 가능
                         .requestMatchers(HttpMethod.GET, "/api/stores/**").permitAll()
 
-                        // 상점 등록 API는 인증 필요
+                        // 상점 등록, 로그인 여부 조회, 상점 수정, 상점 삭제 API는 인증 필요
                         .requestMatchers(HttpMethod.POST, "/api/stores").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/merchants/me").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/stores/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/stores/**").authenticated()
 
                         // 그 외 API는 인증
                         .anyRequest().authenticated()
