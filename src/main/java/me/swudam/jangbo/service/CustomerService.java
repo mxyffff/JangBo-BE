@@ -5,7 +5,7 @@ import me.swudam.jangbo.dto.CustomerSignupRequestDto;
 import me.swudam.jangbo.entity.Customer;
 import me.swudam.jangbo.repository.CustomerRepository;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,7 +15,7 @@ public class CustomerService {
     // 의존성 주입
     private final CustomerRepository customerRepository; // DB 접근
     private final EmailVerificationService emailVerificationService; // 이메일 인증 상태 확인/정리
-    private final BCryptPasswordEncoder passwordEncoder; // 비밀번호 해시
+    private final PasswordEncoder passwordEncoder; // 비밀번호 해시
 
     // 이메일 인증 요구할지 여부: 기본값 true - properties 설정
     @Value("${auth.email.verify.required:true}")

@@ -7,17 +7,21 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 // 세션 기반 인증
 @Configuration // 설정 클래스 명시
 @EnableJpaAuditing // @CreatedDate, @LastModifiedDate 자동 세팅
 public class CustomerInfraConfig {
 
-    // 비밀번호 암호화를 위한 BCrypt 인코더
+    // 비밀번호 암호화를 위한 BCrypt 인코더 => 인터페이스 반환으로 수정함
     @Bean
-    public BCryptPasswordEncoder passwordEncoder() {
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+//    public BCryptPasswordEncoder passwordEncoder() {
+//        return new BCryptPasswordEncoder();
+//    }
 
     // 이메일 인증을 위한 RedisTemplate 설정
     // Redis 문자열 전용 템플릿 -> key/value를 문자열 그대로 넣고 빼고 싶을 때

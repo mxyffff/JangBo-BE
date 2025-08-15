@@ -10,8 +10,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     /* 단건 조회 */
     // 상인 소유권을 함께 검증하는 단건 조회 (상인 전용 API에서 사용)
     Optional<Product> findByIdAndMerchantId(Long productId, Long merchantId);
-    // 공개 단건 조회 (고객 API 전용)
-    Optional<Product> findById(Long productId);
+    // 공개 단건 조회 (고객 API 전용) -> JPA 기본 메서드이므로 삭제
+    // Optional<Product> findById(Long productId);
 
     /* 특정 상인 목록 조회 (정렬) */
     // 최신순 정렬

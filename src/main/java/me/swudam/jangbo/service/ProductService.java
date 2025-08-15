@@ -7,6 +7,7 @@ import me.swudam.jangbo.entity.Merchant;
 import me.swudam.jangbo.entity.Product;
 import me.swudam.jangbo.repository.MerchantRepository;
 import me.swudam.jangbo.repository.ProductRepository;
+import me.swudam.jangbo.support.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,13 +28,13 @@ public class ProductService {
     // 단건 조회 (상인 전용: 소유권 검증 포함)
     public Product getProductById(Long merchantId, Long productId) {
         return productRepository.findByIdAndMerchantId(productId, merchantId)
-                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없거나 접근 권한이 없습니다."));
+                .orElseThrow(() -> new NotFoundException("상품을 찾을 수 없거나 접근 권한이 없습니다."));
     }
 
     // 단건 조회 (고객 전용: 소유권 미검증)
     public Product getPublicProduct(Long productId) {
         return productRepository.findById(productId)
-                .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("상품을 찾을 수 없습니다."));
     }
 
     // 특정 상인 목록 정렬 조회 (상인/고객 공용: 상점 페이지)
@@ -95,7 +96,7 @@ public class ProductService {
     @Transactional
     public Product create(Long merchantId, ProductCreateRequestDto dto) {
         Merchant owner = merchantRepository.findById(merchantId)
-                .orElseThrow(() -> new IllegalArgumentException("상인을 찾을 수 없습니다."));
+                .orElseThrow(() -> new NotFoundException("상인을 찾을 수 없습니다."));
 
         if (dto.getStock() == null || dto.getStock() < 1) {
             throw new IllegalArgumentException("재고는 1 이상이어야 합니다.");

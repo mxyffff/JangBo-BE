@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import me.swudam.jangbo.dto.CustomerLoginRequestDto;
 import me.swudam.jangbo.repository.CustomerRepository;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,11 +23,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 
-// 보안 전제:
-// - CustomerApiSecurityConfig에서 /api/** 전용 SecurityFilterChain을 사용
-// - formLogin/htttpBasic 비활성화 -> 수동으로 AuthenticationManager.authenticate() 호출
-// - 성공 시 SecurityContext를 세션에 저장하여 Stateful 세션 인증 유지
-
 @RestController
 @RequestMapping("/api/customers")
 @RequiredArgsConstructor
@@ -35,7 +31,6 @@ public class CustomerAuthController {
     // 스프링 시큐리티 인증 진입점
     // SecurityBeansConfig에서 노출한 AuthenticationManager 빈을 주입받음
     private final AuthenticationManager authenticationManager;
-
     private final CustomerRepository customerRepository; // 로그인 성공 후 고객 정보 내려줄 때 사용
 
     /* 로그인 */
@@ -61,43 +56,29 @@ public class CustomerAuthController {
                         requestDto.getPassword()
                 );
 
-        try {
-            // 2. AuthenticationManager가 실제 인증 수행 (UserDetailsService + PasswordEndcoder 사용)
-            Authentication authentication = authenticationManager.authenticate(authRequest);
+        // 2. AuthenticationManager가 실제 인증 수행 (UserDetailsService + PasswordEndcoder 사용)
+        Authentication authentication = authenticationManager.authenticate(authRequest);
 
-            // 3. 인증 성공 -> SecurityContext 생성/저장
-            SecurityContext context = SecurityContextHolder.createEmptyContext();
-            context.setAuthentication(authentication);
-            SecurityContextHolder.setContext(context);
+        // 세션 고정 공격 방지: 기존 세션 무효화 후 새 세션 발급
+        HttpSession old = httpServletRequest.getSession(false);
+        if (old != null) old.invalidate();
+        HttpSession newSession = httpServletRequest.getSession(true); // 새 세션
 
-            // 4. 세션에 SecurityContext 저장하여 상태 유지
-            HttpSession session = httpServletRequest.getSession(true); // 없음녀 새로 생성
-            session.setAttribute(
-                    HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-                    context
-            );
+        // 3. 인증 성공 -> SecurityContext 구성/저장
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+        // 4. 세션에 SecurityContext 저장하여 상태 유지
+        newSession.setAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context
+        );
 
-            // 5. 응답 바디 구성
-            Map<String, Object> body = new HashMap<>();
-            body.put("authenticated", true);
-            body.put("email", ((UserDetails) authentication.getPrincipal()).getUsername());
+        // 5. 응답 바디 구성
+        Map<String, Object> body = new HashMap<>();
+        body.put("authenticated", true);
+        body.put("email", ((UserDetails) authentication.getPrincipal()).getUsername());
 
-            return ResponseEntity.ok(body);
-        } catch (BadCredentialsException e) {
-            // 아이디/비밀번호 불일치
-            Map<String, Object> body = new HashMap<>();
-            body.put("authenticated", false);
-            body.put("reason", "BAD_CREDENTIALS");
-
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
-        } catch (Exception exception) {
-            // 그 외 인증 오류
-            Map<String, Object> body = new HashMap<>();
-            body.put("authenticated", false);
-            body.put("reason", exception.getMessage());
-
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
-        }
+        return ResponseEntity.ok(body);
     }
 
     /* 로그아웃 */
@@ -136,7 +117,7 @@ public class CustomerAuthController {
         String email = (principal instanceof UserDetails ud) ? ud.getUsername() : principal.toString();
 
         Map<String, Object> body = new HashMap<>();
-        body.put("aythenticated", true);
+        body.put("authenticated", true);
         body.put("email", email);
 
         return ResponseEntity.ok(body);
@@ -144,7 +125,6 @@ public class CustomerAuthController {
 
     // 익명 인증(AnonymousAuthenticationToken) 여부 간단 판별
     private boolean isAnonymous(Authentication auth) {
-        String name = auth.getName();
-        return name == null || "anonymousUser".equals(name);
+        return auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken;
     }
 }
