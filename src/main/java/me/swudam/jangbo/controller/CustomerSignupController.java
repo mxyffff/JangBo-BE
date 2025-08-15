@@ -64,16 +64,4 @@ public class CustomerSignupController {
         boolean exists = customerService.existsEmail(email);
         return ResponseEntity.ok(Map.of("exists", exists));
     }
-
-
-    /* 서비스에서 던지는 IllegalArgumentException을 400 응답으로 매핑 */
-    // 응답 형식(실패): { "created": false, "message": "에러 메시지" }
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<?> handleIllegalArgument(IllegalArgumentException ex) {
-        // 이메일 미인증 시 가입 불가 -> 400 BAD_REQUEST와 함께 메시지 반환
-        Map<String, Object> body = new HashMap<>();
-        body.put("created", false);
-        body.put("message", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
-    }
 }

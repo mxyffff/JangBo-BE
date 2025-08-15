@@ -24,7 +24,7 @@ public class CustomerApiSecurityConfig {
             HttpSecurity http
     ) throws Exception {
         http
-                .securityMatcher("/api/**") // 이 체인은 /api/**에만 적용
+                .securityMatcher("/api/customers/**", "/api/products/**")
                 .authenticationProvider(customerDaoAuthProvider)
 
                 // REST API는 폼 로그인/로그인 페이지가 필요 없음
@@ -36,16 +36,33 @@ public class CustomerApiSecurityConfig {
 
                 // 개발/테스트 편의로 CSRF 비활성화 (운영 전 CookieCsrfTokenRepository로 전환 권장)
                 .csrf(csrf -> csrf.disable())
+                // 배포 전환 시:
+                // .csrf(csrf -> csrf
+                //     .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                //     .ignoringRequestMatchers(
+                //         "/api/customers/email/**", "/api/customers/login", "/api/customers/logout", "/api/customers/signup"
+                //     )
+                // )
 
                 .authorizeHttpRequests(req -> req
-                        // 회원가입/로그인/이메일 인증 요청은 모두 허용
+                        // 공개 엔드포인트
                         .requestMatchers(HttpMethod.POST, "/api/customers/signup").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/customers/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/customers/logout").permitAll()
                         .requestMatchers("/api/customers/email/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/customers/login").permitAll()
 
-                        // 나머지 API는 우선 전부 허용하고, 이후 단계적으로 보호
-                        .anyRequest().permitAll()
+                        // 고객 상태 확인/로그아웃은 인증 필요
+                        .requestMatchers("/api/customers/me").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/customers/logout").authenticated()
+
+                        // 고객 공개 상품 조회(API)는 전체 공개 (ProductCustomerController)
+                        .requestMatchers("/api/products/**").permitAll()
+
+                        // 그 외는 기본 막기 → 점진 개방
+                        .anyRequest().denyAll()
+                )
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint(new CustomAuthenticationEntryPoint())
+                        .accessDeniedHandler(new CustomAccessDeniedHandler())
                 );
 
         return http.build();

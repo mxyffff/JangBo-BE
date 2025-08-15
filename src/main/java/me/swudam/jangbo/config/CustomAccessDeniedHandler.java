@@ -9,31 +9,27 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Map;
 
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper om = new ObjectMapper();
 
     @Override
-    public void handle(HttpServletRequest request, HttpServletResponse response,
-                       AccessDeniedException accessDeniedException)
-            throws IOException, ServletException {
-
-        // HTTP 상태 코드 403
-        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-        response.setCharacterEncoding("UTF-8");
-
-        // 응답 데이터
+    public void handle(HttpServletRequest req, HttpServletResponse res, AccessDeniedException ex) throws IOException {
+        res.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        res.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        res.setCharacterEncoding("UTF-8");
         Map<String, Object> body = Map.of(
-                "authenticated", true,
-                "authorized", false,
+                "success", false,
+                "status", 403, // 상태 코드 403
+                "code", "FORBIDDEN",
                 "message", "접근 권한이 없습니다.",
-                "path", request.getRequestURI()
+                "path", req.getRequestURI(),
+                "timestamp", OffsetDateTime.now(ZoneOffset.UTC).toString()
         );
-
-        // JSON 직렬화 후 응답
-        objectMapper.writeValue(response.getWriter(), body);
+        om.writeValue(res.getWriter(), body);
     }
 }

@@ -3,6 +3,7 @@ package me.swudam.jangbo.config;
 import lombok.RequiredArgsConstructor;
 import me.swudam.jangbo.security.CustomerUserDetailsService;
 import me.swudam.jangbo.security.MerchantUserDetailsService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -20,7 +21,6 @@ import java.util.Arrays;
 public class SecurityBeansConfig {
 
     private final PasswordEncoder passwordEncoder;
-
     private final CustomerUserDetailsService customerUserDetailsService;
     private final MerchantUserDetailsService merchantUserDetailsService;
 

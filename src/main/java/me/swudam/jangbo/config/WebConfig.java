@@ -24,7 +24,7 @@ public class WebConfig implements WebMvcConfigurer {
                 )
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*") // 필요한 경우 구체적으로 명시 가능
-                .allowedHeaders("Location") // 예: 생성 리소스의 URI를 Location 헤더로 노출할 때
+                .exposedHeaders("Location") // 예: 생성 리소스의 URI를 Location 헤더로 노출할 때
                 .allowCredentials(true) // 세션/쿠키 사용 시 반드시 true
                 .maxAge(3600); // Preflight 캐시 1시간
     }
