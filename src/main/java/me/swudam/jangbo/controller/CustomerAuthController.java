@@ -37,7 +37,6 @@ public class CustomerAuthController {
     // - POST /api/customers/login
     // - BODY(JSON): { "email": "user@example.com", "password": "..." }
     // 응답 성공 200: { "authenticated": true, "email": "user@example.com" }
-    // 응답 실패 401: { "authenticated": false, "reason": "BAD_CREDENTIALS" }
 
     // 1. 기본 검증 후 UsernamePasswordAuthenticationToken을 만들어 AuthenticationManager에 위임
     // 2. 인증 성공 시 SecurityContext에 저장 + HttpSession 생성(JSESSIONID)

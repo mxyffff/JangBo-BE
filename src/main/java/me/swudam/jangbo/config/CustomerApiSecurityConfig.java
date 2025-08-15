@@ -49,6 +49,7 @@ public class CustomerApiSecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/customers/signup").permitAll()
                         .requestMatchers("/api/customers/email/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/customers/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/customers/exists/username").permitAll()
 
                         // 고객 상태 확인/로그아웃은 인증 필요
                         .requestMatchers("/api/customers/me").authenticated()

@@ -146,9 +146,6 @@ public class GlobalExceptionHandler {
                 "인증에 실패했습니다. 이메일 또는 비밀번호를 확인해주세요.", null);
     }
 
-
-
-
     /* 공통 에러 바디 구성 유틸 */
     // success: 항상 false
     // status: HTTP 상태코드 숫자
