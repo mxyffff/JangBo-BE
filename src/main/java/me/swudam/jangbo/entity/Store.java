@@ -9,14 +9,13 @@ import me.swudam.jangbo.dto.StoreFormDto;
 import java.time.LocalTime;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @ToString(exclude = "merchant")
 @Entity
 @Table(name="store")
 @Getter
 @Setter
-public class Store {
+public class Store extends BaseTimeEntity{
     // PK
     @Id
     @Column(name = "store_id")

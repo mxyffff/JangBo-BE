@@ -134,4 +134,27 @@ public class StoreService {
                 .orElseThrow(() -> new NotFoundException("상점을 찾을 수 없습니다."));
         storeRepository.delete(store);
     }
+
+    /* 상점 리스트 정렬 - 최신순, 인기순 */
+    // 상점 최신순 정렬
+    @Transactional(readOnly = true)
+    public List<StoreFormDto> getStoreSortedByRecent(){
+        // 1. Repository에서 createdAt 기준 내림차순으로 상점 조회
+        List<Store> stores = storeRepository.findAllByOrderByCreatedAtDesc();
+
+        // 2. 엔티티 → DTO 변환
+        List<StoreFormDto> storeFormDtos = new ArrayList<>();
+        stores.forEach(s -> {
+            StoreFormDto dto = StoreFormDto.of(s);
+            // Service에서 trim 적용
+            if (dto.getStoreName() != null) dto.setStoreName(dto.getStoreName().trim());
+            if (dto.getStoreAddress() != null) dto.setStoreAddress(dto.getStoreAddress().trim());
+            if (dto.getStorePhoneNumber() != null) dto.setStorePhoneNumber(dto.getStorePhoneNumber().trim());
+            storeFormDtos.add(dto);
+        });
+
+        // 3. DTO 리스트 반환
+        return storeFormDtos;
+    }
+
 }

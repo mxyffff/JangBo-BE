@@ -84,9 +84,22 @@ public class StoreController {
 
     // 3. 전체 상점 조회 (R)
     // GET - /api/stores (목록 조회)
+    // 목록 조회용 API
+    // sort 파라미터(optional): 정렬 기준
+    // recent → 최신순 (기본값)
     @GetMapping
-    public ResponseEntity<?> getAllStores() {
-        List<StoreFormDto> stores = storeService.getStores();
+    public ResponseEntity<?> getAllStores(@RequestParam(required = false, defaultValue = "recent") String sort) {
+        List<StoreFormDto> stores;
+
+        if ("recent".equals(sort)) {
+            stores = storeService.getStoreSortedByRecent(); // 최신순
+        } else if ("popular".equals(sort)) {
+            // 나중에 인기순 구현
+            stores = storeService.getStoreSortedByRecent(); // 임시: 최신순
+        } else {
+            // 잘못된 sort 값 → 기본 최신순
+            stores = storeService.getStoreSortedByRecent();
+        }
         return ResponseEntity.ok(Map.of("found", true, "stores", stores));
     }
 
