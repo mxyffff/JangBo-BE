@@ -13,7 +13,7 @@ public class MerchantFormDto {
     private String username;
 
     @NotBlank(message = "이메일은 필수 입력 값입니다.")
-    @Email(message = "이메일 형식으로 입력해주세요.") // 이메일 형식에 맞는지 확인
+    @Email(message = "잘못된 이메일 형식입니다.") // 이메일 형식에 맞는지 확인
     private String email;
 
     @NotBlank(message = "비밀번호는 필수 입력 값입니다.")
@@ -24,7 +24,7 @@ public class MerchantFormDto {
     private String passwordConfirm;
 
     // PasswordValidator 유틸로 검증
-    @AssertTrue(message = "비밀번호는 8~16자이며, 허용 특수문자 8자( ! # $ % & * @ ^ ) 중 최소 1개를 포함해야 합니다.")
+    @AssertTrue(message = "잘못된 비밀번호 형식입니다.")
     public boolean isPasswordPolicySatisfied() {
         // PasswordValidator는 별도 유틸 고정 구현으로 가정
         // null 대응: @NotBlank에서 이미 차단되지만, 혹시 모를 NPE 방지

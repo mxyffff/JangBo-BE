@@ -45,7 +45,7 @@ public class StoreService {
         Merchant managedMerchant = merchantRepository.findById(merchant.getId())
                 .orElseThrow(() -> new IllegalStateException("상인을 찾을 수 없습니다."));
 
-        // 규칙 검증
+        // 휴무 요일 규칙 검증
         validateDayOff(storeFormDto);
 
         // Store 생성
@@ -91,6 +91,9 @@ public class StoreService {
     // 상점 수정
     public void updateStore(Long storeId, StoreFormDto storeFormDto,
                             MultipartFile storeImage) throws Exception{
+        // 휴무 요일 규칙 검증
+        validateDayOff(storeFormDto);
+
         Optional<Store> optionalStore = storeRepository.findById(storeId);
 
         if (optionalStore.isPresent()) {
