@@ -21,7 +21,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.AuthenticationException;
 
-// [온보딩] 상인
 @RequestMapping("api/merchants")
 @RestController
 @RequiredArgsConstructor

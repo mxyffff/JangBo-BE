@@ -14,7 +14,6 @@ import org.springframework.security.core.userdetails.User;
 
 import java.util.List;
 
-// [온보딩] 상인
 @Service
 @Transactional
 @RequiredArgsConstructor
