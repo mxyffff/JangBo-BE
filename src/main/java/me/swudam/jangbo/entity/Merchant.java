@@ -6,6 +6,9 @@ import lombok.ToString;
 import me.swudam.jangbo.dto.MerchantFormDto;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.ArrayList;
+import java.util.List;
+
 // [온보딩] 상인
 @ToString
 @Entity
@@ -25,6 +28,13 @@ public class Merchant {
     private String email; // 이메일
 
     private String password; // 비밀번호
+
+    // 상인 영속성
+    @OneToMany(mappedBy = "merchant", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Store> stores = new ArrayList<>();
+    // 상품 영속성
+    @OneToMany(mappedBy = "merchant", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Product> products = new ArrayList<>();
 
     public static Merchant createMerchant(MerchantFormDto merchantFormDto, PasswordEncoder passwordEncoder) {
         Merchant merchant = new Merchant();

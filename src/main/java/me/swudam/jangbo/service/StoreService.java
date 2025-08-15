@@ -9,7 +9,6 @@ import me.swudam.jangbo.entity.Store;
 import me.swudam.jangbo.repository.MerchantRepository;
 import me.swudam.jangbo.repository.StoreRepository;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.graphql.GraphQlProperties;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -126,7 +125,12 @@ public class StoreService {
                 // 이미지 교체 시에는 기존 파일 삭제
                 if (store.getStoreImgPath() != null) {
                     File oldFile = new File(store.getStoreImgPath());
-                    if (oldFile.exists()) oldFile.delete();
+                    if (oldFile.exists()) {
+                        boolean deleted = oldFile.delete();
+                        if (!deleted) {
+                            System.err.println("기존 이미지 삭제 실패: " + oldFile.getAbsolutePath());
+                        }
+                    }
                 }
                 // 새 파일 저장
                 UUID uuid = UUID.randomUUID();

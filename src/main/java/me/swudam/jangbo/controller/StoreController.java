@@ -24,7 +24,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RequestMapping("api/stores")
 @RestController
@@ -146,7 +145,7 @@ public class StoreController {
         try{
             List<StoreFormDto> stores = storeRepository.findAll().stream()
                     .map(StoreFormDto::of)
-                    .collect(Collectors.toList());
+                    .toList();
             return ResponseEntity.ok(Map.of(
                     "found", true,
                     "stores", stores
@@ -215,7 +214,7 @@ public class StoreController {
             // 3-8. 404 및 기타 상태 코드
             return ResponseEntity.status(e.getStatusCode()).body(Map.of(
                     "updated", false,
-                    "message", e.getReason()
+                    "message", e.getReason() != null ? e.getReason() : "이유 없음"
             ));
         } catch (HttpClientErrorException e){
             // 3-9. 잘못된 요청 400
@@ -286,7 +285,7 @@ public class StoreController {
             // 4-8. 404 및 기타 상태 코드
             return ResponseEntity.status(e.getStatusCode()).body(Map.of(
                     "deleted", false,
-                    "message", e.getReason()
+                    "message", e.getReason() != null ? e.getReason() : "이유 없음"
             ));
         } catch (HttpClientErrorException e){
             // 4-9. 잘못된 요청

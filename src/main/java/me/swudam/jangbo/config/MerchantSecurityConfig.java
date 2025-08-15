@@ -1,7 +1,6 @@
 package me.swudam.jangbo.config;
 
 import lombok.RequiredArgsConstructor;
-import me.swudam.jangbo.security.MerchantUserDetailsService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,7 +9,6 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 // 상인 전용 Spring Security Config 설정
@@ -18,11 +16,6 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 @RequiredArgsConstructor
 public class MerchantSecurityConfig {
-
-    // 상인 계정 정보를 로드하는 서비스
-    private final MerchantUserDetailsService merchantUserDetailsService;
-    // 비밀번호 암호화
-    private final PasswordEncoder passwordEncoder;
 
     @Qualifier("merchantDaoAuthProvider")
     private final AuthenticationProvider merchantDaoAuthProvider;
@@ -54,7 +47,7 @@ public class MerchantSecurityConfig {
                         // 상점 조회 API는 누구나 가능
                         .requestMatchers(HttpMethod.GET, "/api/stores/**").permitAll()
 
-                        // 상점 등록, 로그인 여부 조회, 상점 수정, 상점 삭제 API는 인증 필요
+                        // 상점 등록, 상인 정보 조회/변경, 상점 수정, 상점 삭제 API는 인증 필요
                         .requestMatchers(HttpMethod.POST, "/api/stores").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/merchants/me").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/stores/**").authenticated()

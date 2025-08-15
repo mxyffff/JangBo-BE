@@ -1,5 +1,7 @@
 package me.swudam.jangbo.security;
 
+import lombok.Getter;
+import lombok.Setter;
 import me.swudam.jangbo.entity.Merchant;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -11,6 +13,8 @@ import java.util.List;
 // Spring Security의 UserDetails 구현체
 // 상인 계정 정보를 인증 컨텍스트에 담기 위해 사용
 // AuthenticationProvider가 인증 성공 시, SecurityContextHolder에 저장
+@Getter
+@Setter
 public class MerchantUserDetails implements UserDetails {
     private final Long id;
     private final String email;
