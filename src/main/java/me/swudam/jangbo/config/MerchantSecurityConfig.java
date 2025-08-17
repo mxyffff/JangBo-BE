@@ -1,6 +1,7 @@
 package me.swudam.jangbo.config;
 
 import lombok.RequiredArgsConstructor;
+import me.swudam.jangbo.filter.StoreRegistrationAuthenticationFilter;
 import me.swudam.jangbo.security.MerchantUserDetailsService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -13,6 +14,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 // 상인 전용 Spring Security Config 설정
 // Order(1)로 먼저 적용
@@ -72,10 +74,15 @@ public class MerchantSecurityConfig {
                 .exceptionHandling(error -> error
                         .authenticationEntryPoint(new CustomAuthenticationEntryPoint()) // 401 인증 실패 JSON 응답
                         .accessDeniedHandler(new CustomAccessDeniedHandler()) // 403 JSON 응답
-                )
+                );
                 // 상점 등록 세션 Postman API 테스트용
-                .addFilterBefore(storeRegistrationAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+                //.addFilterBefore(storeRegistrationAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
+        // dev 환경에서만 필터 추가
+        if ("dev".equals(System.getProperty("spring.profiles.active"))) {
+            http.addFilterBefore(new StoreRegistrationAuthenticationFilter(),
+                    UsernamePasswordAuthenticationFilter.class);
+        }
         return http.build();
     }
 
