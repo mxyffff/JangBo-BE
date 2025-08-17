@@ -72,12 +72,9 @@ public class MerchantSecurityConfig {
                 .exceptionHandling(error -> error
                         .authenticationEntryPoint(new CustomAuthenticationEntryPoint()) // 401 인증 실패 JSON 응답
                         .accessDeniedHandler(new CustomAccessDeniedHandler()) // 403 JSON 응답
-                );
-
-        // dev 프로파일에서만 필터 추가
-        if (storeRegistrationAuthenticationFilter != null) {
-            http.addFilterBefore(storeRegistrationAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
-        }
+                )
+                // 상점 등록 세션 Postman API 테스트용
+                .addFilterBefore(storeRegistrationAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
