@@ -5,8 +5,10 @@ build/
 !**/src/test/**/build/
 
 application.properties
+application-prod.properties
 
 ### IntelliJ IDEA ###
+
 .idea/
 .idea/modules.xml
 .idea/jarRepositories.xml
