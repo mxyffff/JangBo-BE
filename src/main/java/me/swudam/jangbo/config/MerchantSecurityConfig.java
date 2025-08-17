@@ -33,7 +33,7 @@ public class MerchantSecurityConfig {
     // 상인 API 전용 Security Filter Chain
     @Bean
     @Order(1) // 먼저 매칭되도록
-    public SecurityFilterChain filterChain(HttpSecurity http, me.swudam.jangbo.filter.StoreRegistrationAuthenticationFilter storeRegistrationAuthenticationFilter) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .securityMatcher("/api/merchants/**", "/api/stores/**")
                 .authenticationProvider(merchantDaoAuthProvider)
