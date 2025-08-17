@@ -49,6 +49,7 @@ public class MerchantSecurityConfig {
                 .authorizeHttpRequests(requests -> requests
                         // 회원가입/중복체크/로그인/로그아웃 API 허용
                         .requestMatchers(HttpMethod.POST, "/api/merchants/signup").permitAll()
+                        .requestMatchers("/api/merchants/email/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/merchants/exists/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/merchants/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/merchants/logout").permitAll()

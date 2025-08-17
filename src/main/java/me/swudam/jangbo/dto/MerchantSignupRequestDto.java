@@ -3,13 +3,12 @@ package me.swudam.jangbo.dto;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
-import me.swudam.jangbo.entity.Category;
 import org.hibernate.validator.constraints.Length;
 
 // [온보딩] 상인
 @Getter
 @Setter
-public class MerchantFormDto {
+public class MerchantSignupRequestDto {
     @NotBlank(message = "이름은 필수 입력 값입니다.")
     private String username;
 
@@ -31,5 +30,12 @@ public class MerchantFormDto {
         // null 대응: @NotBlank에서 이미 차단되지만, 혹시 모를 NPE 방지
         if (password == null) return false;
         return me.swudam.jangbo.util.PasswordValidator.isValid(password);
+    }
+
+    // 새로 추가
+    @AssertTrue(message = "비밀번호와 비밀번호 확인이 일치하지 않습니다.")
+    public boolean isPasswordConfirmed() {
+        if (password == null || passwordConfirm == null) return false;
+        return password.equals(passwordConfirm);
     }
 }

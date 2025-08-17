@@ -3,10 +3,11 @@ package me.swudam.jangbo.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
-import me.swudam.jangbo.dto.MerchantFormDto;
+import me.swudam.jangbo.dto.MerchantSignupRequestDto;
 import me.swudam.jangbo.dto.MerchantUpdateDto;
 import me.swudam.jangbo.entity.Merchant;
 import me.swudam.jangbo.repository.MerchantRepository;
+import me.swudam.jangbo.service.EmailVerificationService;
 import me.swudam.jangbo.service.MerchantService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,7 +15,6 @@ import org.springframework.security.authentication.AuthenticationCredentialsNotF
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
@@ -25,8 +25,6 @@ import java.util.Map;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.AuthenticationException;
 
 // [온보딩] 상인
 // 실패 응답은 전부 GlobalExceptionHandler가 통일 포맷(JSON)으로 처리하도록 예외를 던지는 방식 채택
@@ -38,36 +36,12 @@ public class MerchantController {
     private final MerchantService merchantService; // 상인 관련 비즈니스 로직
     private final AuthenticationManager authenticationManager; // 비밀번호 암호화 / 검증
     private final MerchantRepository merchantRepository; // 로그인 인증 처리
+    private final EmailVerificationService emailVerificationService; // 추가
 
     /* 1. 회원가입 */
     // 상인 회원가입 API
     // POST - /api/merchants/signup
-    @PostMapping("/signup")
-    public ResponseEntity<?> signup(@Valid @RequestBody MerchantFormDto dto, HttpSession session) {
-        if (!dto.getPassword().equals(dto.getPasswordConfirm())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
-        }
-
-        Merchant merchant = Merchant.createMerchant(dto, merchantService.getPasswordEncoder());
-        merchantService.saveMerchant(merchant);
-
-        // 가입 직후 1회성 세션 플래그 (dev 편의)
-        session.setAttribute("justRegisteredMerchant", true);
-        session.setAttribute("justRegisteredMerchantEmail", merchant.getEmail());
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
-                "created", true,
-                "merchantId", merchant.getId(),
-                "email", merchant.getEmail()
-        ));
-    }
-
-    /* 2. 이메일 중복 확인 */
-    @GetMapping("/exists/email")
-    public ResponseEntity<?> existsEmail(@RequestParam("value") String value) {
-        boolean exists = merchantService.existsEmail(value);
-        return ResponseEntity.ok(Map.of("exists", exists));
-    }
+    // 기존 코드 삭제 -> MerchantSignupController 생성
 
     /* 3. 로그인 */
     // 상인 로그인 API

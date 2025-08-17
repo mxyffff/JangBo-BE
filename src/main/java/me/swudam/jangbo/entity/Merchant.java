@@ -3,7 +3,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import me.swudam.jangbo.dto.MerchantFormDto;
+import me.swudam.jangbo.dto.MerchantSignupRequestDto;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.ArrayList;
@@ -34,17 +34,4 @@ public class Merchant {
     // 상품 영속성
     @OneToMany(mappedBy = "merchant", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Product> products = new ArrayList<>();
-
-
-    public static Merchant createMerchant(MerchantFormDto merchantFormDto, PasswordEncoder passwordEncoder) {
-        Merchant merchant = new Merchant();
-
-        merchant.setUsername(merchantFormDto.getUsername()); // 유저 이름
-        merchant.setEmail(merchantFormDto.getEmail()); // 이메일
-
-        String pwd = passwordEncoder.encode(merchantFormDto.getPassword()); // 비밀번호
-        merchant.setPassword(pwd);
-
-        return merchant;
-    }
 }

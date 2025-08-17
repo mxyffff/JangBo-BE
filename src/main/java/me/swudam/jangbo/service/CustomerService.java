@@ -32,30 +32,31 @@ public class CustomerService {
     // return: 저장된 Customer 엔티티
     @Transactional
     public Customer signup(CustomerSignupRequestDto req) {
-        // 1
+
         final String email = normalizeEmail(req.getEmail());
         final String username = safeTrim(req.getUsername());
         // 평문 비밀번호: DTO 1차 검증 + PasswordValidator 2차 검증을 이미 통과했다고 가정
         final String rawPassword = req.getPassword();
 
-        // 2
+        // 1. 중복 여부 먼저 체크
+        if (customerRepository.existsByEmail(email)) {
+            throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+        }
+        // DB에도 유니크 제약이 있지만 사용자 경험을 위해 애플리케이션 레벨에서 먼저 체크
+        if (customerRepository.existsByUsername(username)) {
+            throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+        }
+
+        // 2. 그 다음 이메일 인증 여부 체크
         if (verifyRequired && !emailVerificationService.isVerified(email)) {
             // 프론트에서 "인증 메일 보내기 -> 코드 입력 -> 인증 확인" 플로우가 끝나지 않은 상태
             throw new IllegalArgumentException("이메일 인증이 필요합니다.");
         }
 
-        // 3 (DB에도 유니크 제약이 있지만 사용자 경험을 위해 애플리케이션 레벨에서 먼저 체크)
-        if (customerRepository.existsByUsername(username)) {
-            throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
-        }
-        if (customerRepository.existsByEmail(email)) {
-            throw new IllegalArgumentException("이미 가입된 이메일입니다.");
-        }
-
-        // 4 (해시 결과는 매번 달라지지만 matches(raw, hash)로 검증 가능
+        // 3. 해시 결과는 매번 달라지지만 matches(raw, hash)로 검증 가능
         final String passwordHash = passwordEncoder.encode(rawPassword);
 
-        // 5
+        // 4. 고객 엔티티 저장
         Customer saved = customerRepository.save(
                 Customer.builder()
                         .username(username)
@@ -64,7 +65,7 @@ public class CustomerService {
                         .build()
         );
 
-        // 6
+        // 5. 인증이 끝난 이메일 정보 삭제
         if (verifyRequired) {
             emailVerificationService.clearVerified(email);
         }

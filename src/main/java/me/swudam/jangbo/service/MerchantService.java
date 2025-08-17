@@ -1,10 +1,12 @@
 package me.swudam.jangbo.service;
 
+import me.swudam.jangbo.dto.MerchantSignupRequestDto;
 import me.swudam.jangbo.dto.MerchantUpdateDto;
 import me.swudam.jangbo.entity.Merchant;
 import lombok.RequiredArgsConstructor;
 import me.swudam.jangbo.repository.MerchantRepository;
 import me.swudam.jangbo.support.NotFoundException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,20 +27,39 @@ public class MerchantService {
     private final PasswordEncoder passwordEncoder; // 비밀번호 암호화/검증
     private final EmailVerificationService emailVerificationService; // 이메일 인증 상태 확인/정리
 
-    public PasswordEncoder getPasswordEncoder() { return passwordEncoder; }
+    // 이메일 인증 요구할지 여부: 기본값 true - properties 설정
+    @Value("${auth.email.verify.required:true}")
+    private boolean verifyRequired;
 
-    // 회원 저장 (회원가입)
-    public Merchant saveMerchant(Merchant merchant) {
-        // 이메일 중복 검사
-        if (existsEmail(merchant.getEmail())) {
+    /* 신규 메서드: 회원가입 메서드 */
+    public Merchant signup(MerchantSignupRequestDto requestDto) {
+        final String email = normalizeEmail(requestDto.getEmail());
+        final String username = safeTrim(requestDto.getUsername());
+        final String rawPassword = requestDto.getPassword();
+
+        // 1. 중복 여부 먼저 체크
+        if (merchantRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
         }
-        return merchantRepository.save(merchant);
-    }
+        // 2. 그 다음 이메일 인증 여부 체크
+        if (verifyRequired && !emailVerificationService.isVerified(email)) {
+            throw new IllegalArgumentException("이메일 인증이 필요합니다.");
+        }
 
-    @Transactional(readOnly = true)
-    public boolean existsEmail(String email) {
-        return merchantRepository.existsByEmail(email); // 이메일 존재 여부 확인
+        final String passwordHash = passwordEncoder.encode(rawPassword);
+
+        Merchant saved = new Merchant();
+        saved.setUsername(username);
+        saved.setEmail(email);
+        saved.setPassword(passwordHash);
+
+        merchantRepository.save(saved);
+
+        if(verifyRequired) {
+            emailVerificationService.clearVerified(email);
+        }
+
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -70,6 +91,17 @@ public class MerchantService {
     public void deleteMerchant(String email) {
         Merchant merchant = getMerchantByEmail(email);
         merchantRepository.delete(merchant);
+    }
+
+    /* 신규 메서드: 내부 유틸 메서드 */
+    private String normalizeEmail(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalArgumentException("이메일을 입력해주세요.");
+        }
+        return raw.trim().toLowerCase();
+    }
+    private String safeTrim(String raw) {
+        return raw == null ? "" : raw.trim();
     }
 }
 

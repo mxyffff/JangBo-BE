@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/customers/email")
+@RequestMapping({"/api/customers/email", "api/merchants/email"})
 @RequiredArgsConstructor
 public class EmailVerificationController {
 

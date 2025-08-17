@@ -2,6 +2,7 @@ package me.swudam.jangbo.service;
 
 import lombok.RequiredArgsConstructor;
 import me.swudam.jangbo.repository.CustomerRepository;
+import me.swudam.jangbo.repository.MerchantRepository;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -21,6 +22,7 @@ public class EmailVerificationService {
 
     // 가입 여부 중복 체크를 위해 사용
     private final CustomerRepository customerRepository;
+    private final MerchantRepository merchantRepository; // 추가
 
     /* Redis 키 네이밍 컨벤션 */
     // 인증코드 저장 키
@@ -44,8 +46,8 @@ public class EmailVerificationService {
     public String requestCode(String rawEmail) {
         final String email = normalizeEmail(rawEmail);
 
-        // 1. 이미 가입된 이메일인지 체크
-        if (customerRepository.existsByEmail(email)) {
+        // 1. 이미 가입된 이메일인지 체크 -> 고객/상인 둘 다 중복 차단
+        if (customerRepository.existsByEmail(email) || merchantRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("이미 가입된 이메일입니다.");
         }
 
