@@ -44,9 +44,6 @@ public class MerchantController {
     // POST - /api/merchants/signup
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@Valid @RequestBody MerchantFormDto dto, HttpSession session, HttpServletRequest request) {
-        System.out.println("Request URI: " + request.getRequestURI());
-        System.out.println("HTTP Method: " + request.getMethod());
-
         if (!dto.getPassword().equals(dto.getPasswordConfirm())) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
         }
