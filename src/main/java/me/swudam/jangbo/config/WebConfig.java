@@ -19,8 +19,9 @@ public class WebConfig implements WebMvcConfigurer {
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**") // 모든 API 경로 허용
                 .allowedOrigins(
-                        "http://localhost:3000" // 개발 단계 로컬 React 서버
+                        "http://localhost:3000", // 개발 단계 로컬 React 서버
                         // 배포 시: "https://프론트_실서비스_도메인"
+                        "https://nullheather.shop" // 가비아 도메인 (테스트용)
                 )
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*") // 필요한 경우 구체적으로 명시 가능

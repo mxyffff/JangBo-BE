@@ -23,6 +23,7 @@ public class MerchantService {
 
     private final MerchantRepository merchantRepository; // DB 접근용
     private final PasswordEncoder passwordEncoder; // 비밀번호 암호화/검증
+    private final EmailVerificationService emailVerificationService; // 이메일 인증 상태 확인/정리
 
     public PasswordEncoder getPasswordEncoder() { return passwordEncoder; }
 
