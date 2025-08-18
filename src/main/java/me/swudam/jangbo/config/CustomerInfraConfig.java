@@ -11,7 +11,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 // 세션 기반 인증
 @Configuration // 설정 클래스 명시
-@EnableJpaAuditing // @CreatedDate, @LastModifiedDate 자동 세팅
 public class CustomerInfraConfig {
 
     // 비밀번호 암호화를 위한 BCrypt 인코더 => 인터페이스 반환으로 수정함

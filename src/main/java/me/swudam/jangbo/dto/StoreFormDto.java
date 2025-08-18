@@ -43,9 +43,16 @@ public class StoreFormDto {
     @NotNull(message = "카테고리는 한 가지를 필수 선택해야 합니다.")
     private Category category;
 
+    // ---- 응답용 식별자 필드 (요청시에는 무시) ----
+    private Long storeId;     // 선택: 상점 아이디도 같이 쓰고 싶으면
+    private Long merchantId;  // ★ 프론트 요청 -> 상인 id도 함께 반환
+
     // --- Added mapper for response usage ---
     public static StoreFormDto of(Store s) {
         StoreFormDto dto = new StoreFormDto();
+
+        dto.setStoreId(s.getId()); // 상점 id 추가 (선택)
+        dto.setMerchantId(s.getMerchant() != null ? s.getMerchant().getId() : null); // 상인 id 추가
         dto.setStoreName(s.getStoreName());
         dto.setStoreAddress(s.getStoreAddress());
         dto.setOpenTime(s.getOpenTime());
