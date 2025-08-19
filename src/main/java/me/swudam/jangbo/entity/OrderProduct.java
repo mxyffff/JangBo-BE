@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-// 주문 당시 가격과 수량 기록
+// 주문 당시 가격과 수량 기록 관리
 @Entity
 @Table(name = "order_products")
 @Getter

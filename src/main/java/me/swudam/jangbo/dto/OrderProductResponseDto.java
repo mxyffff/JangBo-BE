@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
+// 상품 주문 응답 DTO
 @Getter
 @Setter
 @AllArgsConstructor

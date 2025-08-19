@@ -3,41 +3,49 @@ package me.swudam.jangbo.controller;
 import lombok.RequiredArgsConstructor;
 import me.swudam.jangbo.dto.OrderRequestDto;
 import me.swudam.jangbo.dto.OrderResponseDto;
-import me.swudam.jangbo.service.CustomerOrderService;
+import me.swudam.jangbo.security.CustomerUserDetails;
+import me.swudam.jangbo.service.OrderService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+// 고객 주문
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
 public class CustomerOrderController{
 
-    private final CustomerOrderService customerOrderService;
+    private final OrderService orderService;
 
-    // 주문 생성
+    // 1. 주문 생성
+    // POST - /api/orders
     @PostMapping
     public OrderResponseDto createOrder(@RequestBody OrderRequestDto dto,
-                                        @AuthenticationPrincipal Long customerId) {
-        return customerOrderService.createOrder(customerId, dto);
+                                        @AuthenticationPrincipal CustomerUserDetails user) {
+        Long customerId = user.getId();
+        return orderService.createOrder(customerId, dto);
     }
 
-    // 고객 주문 취소
+    // 2. 고객 주문 취소
+    // PATCH - /api/orders/{orderId}/cancel
     @PatchMapping("/{orderId}/cancel")
     public void cancelOrder(@PathVariable Long orderId) {
-        customerOrderService.cancelOrder(orderId);
+        orderService.cancelOrder(orderId);
     }
 
-    // 주문 목록 조회
+    // 3. 주문 목록 조회
+    // GET - /api/orders
     @GetMapping
-    public List<OrderResponseDto> getOrders(@AuthenticationPrincipal Long customerId) {
-        return customerOrderService.getOrdersByCustomer(customerId);
+    public List<OrderResponseDto> getOrders(@AuthenticationPrincipal CustomerUserDetails user) {
+        Long customerId = user.getId();
+        return orderService.getOrdersByCustomer(customerId);
     }
 
-    // 주문 상세 조회
+    // 4. 주문 상세 조회
+    // GET - /api/orders/{orderId}
     @GetMapping("/{orderId}")
     public OrderResponseDto getOrder(@PathVariable Long orderId) {
-        return customerOrderService.getOrderById(orderId);
+        return orderService.getOrderById(orderId);
     }
 }

@@ -3,6 +3,8 @@ package me.swudam.jangbo.dto;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 // 주문 생성 요청 DTO
 @Getter
 @Setter

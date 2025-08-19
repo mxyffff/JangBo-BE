@@ -1,5 +1,6 @@
 package me.swudam.jangbo.entity;
 
+// 주문 상태
 public enum OrderStatus {
     REQUESTED, // 고객이 주문 요청, 상인 확인 전
     ACCEPTED, // 상인이 주문 수락, 준비시간 설정
