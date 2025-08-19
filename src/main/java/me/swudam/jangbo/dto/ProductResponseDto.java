@@ -27,11 +27,17 @@ public class ProductResponseDto {
     String createdAt; // ISO-8601 문자열
     String updatedAt; // ISO-8601 문자열
 
+    // 응답용 식별자 필드
+    Long storeId; // 소유 상점 id
+    Long merchantId; // 소유 상인 id
+
     // 엔티티 -> 응답 DTO 변환
     public static ProductResponseDto from(Product p) {
         DateTimeFormatter d = DateTimeFormatter.ISO_LOCAL_DATE;
 
         return ProductResponseDto.builder()
+                .storeId(p.getStore().getId()) // 상점 id
+                .merchantId(p.getMerchant().getId()) // 상인 id
                 .id(p.getId())
                 .name(p.getName())
                 .origin(p.getOrigin())

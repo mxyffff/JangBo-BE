@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import org.hibernate.annotations.Comment;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 @Getter
@@ -26,6 +27,10 @@ public class Product extends BaseTimeEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "merchant_id", nullable = false)
     private Merchant merchant;
+    // 소유 상점(N:1)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "store_id", nullable = false)
+    private Store store;
 
     // 상품명
     @Column(nullable = false, length = 100)
@@ -51,6 +56,11 @@ public class Product extends BaseTimeEntity {
     @Comment("가격(원화, 정수)")
     private Integer price;
 
+    @Version // 가격 변동을 저장하기 위한 버전
+    private Long version;
+
+    private Instant priceUpdatedAt;
+
     // 이미지 URL
     // 실제 파일 업로드는 별도 모듈에서 처리
     @Column(name = "image_url", length = 500)
@@ -60,6 +70,20 @@ public class Product extends BaseTimeEntity {
     @Column(nullable = false)
     @Comment("품절 여부")
     private Boolean soldOut;
+
+    /* 저장/수정 직전에 공통 수행: 소유자 무결성 검사 + 가격 타임스탬프 갱신 */
+    @PrePersist @PreUpdate
+    private void beforeSave() {
+        // 1) 소유 무결성 검사
+        if (store == null || merchant == null){
+            throw new IllegalStateException("상품에는 상점과 상인이 모두 설정되어야 합니다.");
+        }
+        if (!store.getMerchant().getId().equals(merchant.getId())) {
+            throw new IllegalStateException("상품의 상인과 상점의 상인이 일치하지 않습니다.");
+        }
+        // 2) 가격 갱신 시각 기록 (이번 구현에서는 모든 업데이트 시각으로 갱신)
+        this.priceUpdatedAt = Instant.now();
+    }
 
     /* 비즈니스 메서드 */
     // 규칙 강제:
