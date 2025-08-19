@@ -45,6 +45,7 @@ public class CustomerApiSecurityConfig {
                 // )
 
                 .authorizeHttpRequests(req -> req
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // 0819
                         // 공개 엔드포인트
                         .requestMatchers(HttpMethod.POST, "/api/customers/signup").permitAll()
                         .requestMatchers("/api/customers/email/**").permitAll()
