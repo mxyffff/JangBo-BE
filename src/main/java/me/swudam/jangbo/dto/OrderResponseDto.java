@@ -16,11 +16,12 @@ import java.util.List;
 public class OrderResponseDto {
     private Long orderId;
     private OrderStatus status;
-    private int totalPrice;
-    private int deliveryFee;
+    private int totalPrice; // 금액 합계
+    private int deliveryFee; // 수수료
     private String orderDate; // yyyy-MM-dd HH:mm:ss
-    private String cancelReason;
+    private String cancelReason; // 취소 이유
     private List<OrderProductResponseDto> products;
     private Long remainingMinutes; // 분 단위 남은 시간
     private String updatedAt; // yyyy-MM-dd HH:mm:ss
+    private Integer pickupSlot; // 픽업대 번호
 }

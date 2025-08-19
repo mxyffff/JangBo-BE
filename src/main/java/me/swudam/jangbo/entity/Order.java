@@ -27,8 +27,9 @@ public class Order extends BaseTimeEntity {
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<OrderProduct> orderProducts = new ArrayList<>();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "merchant_id")
+    private Merchant merchant;
 
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
@@ -46,6 +47,10 @@ public class Order extends BaseTimeEntity {
     // 상인이 주문 취소 시 입력하는 사유
     private String cancelReason;
 
+    // 픽업대 슬롯
+    @Column(name = "pickup_slot")
+    private Integer pickupSlot; // 1~10까지 부여되는 픽업대 번호
+
     /* 연관관계 편의 메서드 */
     public void addOrderProduct(OrderProduct op) {
         orderProducts.add(op);
@@ -57,4 +62,8 @@ public class Order extends BaseTimeEntity {
                 .mapToInt(OrderProduct::getTotalPrice)
                 .sum();
     }
+
+    // 주문 상품 영속성
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderProduct> orderProducts = new ArrayList<>();
 }

@@ -66,7 +66,7 @@ public class MerchantOrderController {
     }
 
     // 2. 주문 수락 + 준비시간 설정
-    // PATCH /api/merchants/orders/{orderId}/accept
+    // PATCH /api/merchants/orders/{orderId}/accept?preparationTime=15
     @PatchMapping("/{orderId}/accept")
     public ResponseEntity<?> acceptOrder(@PathVariable Long orderId,
                                          @RequestParam Integer preparationTime,
@@ -106,7 +106,7 @@ public class MerchantOrderController {
     }
 
     // 4. 주문 취소 + 사유 입력
-    // PATCH /api/merchants/orders/{orderId}/cancel
+    // PATCH /api/merchants/orders/{orderId}/cancel?reason=사유입력
     @PatchMapping("/{orderId}/cancel")
     public ResponseEntity<?> cancelOrder(@PathVariable Long orderId,
                                          @RequestParam String reason,

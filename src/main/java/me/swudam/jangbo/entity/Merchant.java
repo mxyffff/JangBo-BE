@@ -3,6 +3,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,9 +26,9 @@ public class Merchant {
 
     private String password; // 비밀번호
 
-    // 상인 영속성
-    @OneToMany(mappedBy = "merchant", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Store> stores = new ArrayList<>();
+    // 상점 영속성
+    @OneToOne(mappedBy = "merchant", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Store store;
     // 상품 영속성
     @OneToMany(mappedBy = "merchant", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Product> products = new ArrayList<>();

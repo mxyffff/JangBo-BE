@@ -7,7 +7,9 @@ import lombok.ToString;
 import me.swudam.jangbo.dto.StoreFormDto;
 
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @ToString(exclude = "merchant")
@@ -48,7 +50,7 @@ public class Store extends BaseTimeEntity{
     private Category category; // 카테고리
 
     // Merchant와의 관계 (FK)
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne
     @JoinColumn(name = "merchant_id", nullable = false)
     private Merchant merchant;
 

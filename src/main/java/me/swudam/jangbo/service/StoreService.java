@@ -69,7 +69,7 @@ public class StoreService {
 
     // 전체 상점 조회
     @Transactional(readOnly = true)
-    public List<StoreFormDto> getStores() {
+    public List<StoreFormDto> getStore() {
         List<Store> stores = storeRepository.findAll();
         List<StoreFormDto> dtos = new ArrayList<>();
         stores.forEach(s -> dtos.add(StoreFormDto.of(s)));

@@ -7,7 +7,9 @@ public enum OrderStatus {
     PREPARING, // 상인이 준비 중
     READY, // 픽업 대기
     COMPLETED, // 픽업 완료
-    CANCELED; // 주문 취소
+    CANCELED, // 주문 취소
+
+    MERCHANT_LEFT; // 만약 상인이 회원탈퇴했을 경우, 주문은 보존하되 이 상태로 전환
 
     public boolean canBeCanceledByCustomer() {
         return this == REQUESTED;

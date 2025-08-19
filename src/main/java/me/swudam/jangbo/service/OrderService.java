@@ -6,7 +6,6 @@ import me.swudam.jangbo.dto.OrderRequestDto;
 import me.swudam.jangbo.dto.OrderResponseDto;
 import me.swudam.jangbo.entity.*;
 import me.swudam.jangbo.repository.CustomerRepository;
-import me.swudam.jangbo.repository.MerchantRepository;
 import me.swudam.jangbo.repository.OrderRepository;
 import me.swudam.jangbo.repository.ProductRepository;
 import me.swudam.jangbo.repository.StoreRepository;
@@ -17,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -27,7 +27,9 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final CustomerRepository customerRepository;
     private final StoreRepository storeRepository;
-    private final MerchantRepository merchantRepository;
+
+    // 픽업대 관련 상수
+    private static final int MAX_PICKUP_SLOT = 10; // 픽업대 최대 개수
 
     // 배송비 관련 상수
     private static final int BASE_DELIVERY_FEE = 800; // [기본 배송비]
@@ -45,84 +47,81 @@ public class OrderService {
      * - OrderResponseDto 변환 후 반환
      */
     @Transactional
-    public OrderResponseDto createOrder(Long customerId, OrderRequestDto dto) {
+    public List<OrderResponseDto> createOrders(Long customerId, OrderRequestDto orderRequestDto) {
+        if (orderRequestDto.getStoreOrders() == null || orderRequestDto.getStoreOrders().isEmpty()) {
+            throw new IllegalArgumentException("주문할 상점 정보가 없습니다.");
+        }
+
         // 1) 고객 확인
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 고객입니다."));
 
-        // 2) 상점 확인
-        Store store = storeRepository.findById(dto.getStoreId())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상점입니다."));
+        // 2) 전체 주문할 상점 수 계산 → 배송비 공통 계산
+        int numStores = orderRequestDto.getStoreOrders().size();
+        int deliveryFee = Math.min(BASE_DELIVERY_FEE + STORE_ADDITIONAL_FEE * (numStores - 1), MAX_DELIVERY_FEE);
 
-        // 3) 주문 상품 처리
-        List<OrderProduct> orderProducts = dto.getProducts().stream().map(p -> {
-            Product product = productRepository.findById(p.getProductId())
-                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상품입니다."));
+        List<OrderResponseDto> result = new ArrayList<>();
 
-            if (product.getSoldOut() || product.getStock() < p.getQuantity()) {
-                throw new OutOfStockException("재고가 부족합니다: " + product.getName());
+        // 3) 각 상점별 주문 생성
+        for (OrderRequestDto.StoreOrderDto storeOrder : orderRequestDto.getStoreOrders()) {
+            Store store = storeRepository.findById(storeOrder.getStoreId())
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상점입니다."));
+
+            // 주문 상품 처리
+            List<OrderProduct> orderProducts = storeOrder.getProducts().stream().map(p -> {
+                Product product = productRepository.findById(p.getProductId())
+                        .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상품입니다."));
+                if (product.getSoldOut() || product.getStock() < p.getQuantity()) {
+                    throw new OutOfStockException("재고가 부족합니다: " + product.getName());
+                }
+
+                int remainingStock = product.getStock() - p.getQuantity();
+                if (remainingStock <= 0) product.markSoldOut();
+                else product.updateProduct(product.getName(), product.getOrigin(), product.getExpiryDate(),
+                        product.getPrice(), remainingStock, product.getImageUrl());
+
+                OrderProduct op = new OrderProduct();
+                op.setProduct(product);
+                op.setQuantity(p.getQuantity());
+                op.setPrice(product.getPrice());
+                return op;
+            }).toList();
+
+            // Order 생성
+            Order order = new Order();
+            order.setCustomer(customer);
+            order.setStore(store);
+            order.setStatus(OrderStatus.REQUESTED);
+            order.setMerchant(store.getMerchant());
+            order.setDeliveryFee(deliveryFee);
+
+            orderProducts.forEach(order::addOrderProduct);
+            order.calculateTotalPrice();
+
+            // 픽업대 배정
+            int pickupSlot = assignPickupSlot(store);
+            order.setPickupSlot(pickupSlot);
+
+            orderRepository.save(order);
+
+            // DTO 변환 후 리스트에 추가
+            result.add(toDto(order));
+        }
+        return result;
+    }
+
+    // 픽업대 번호 배정
+    private int assignPickupSlot(Store store) {
+        // 현재 상점의 주문 중 비어있지 않은 슬롯 조회
+        List<Integer> usedSlots = orderRepository.findPickupSlotsByStoreId(store.getId());
+
+        for (int i = 1; i <= MAX_PICKUP_SLOT; i++) {
+            if (!usedSlots.contains(i)) {
+                return i; // 가장 작은 번호부터 배정
             }
-
-            // 재고 감소 및 품절 처리
-            int remainingStock = product.getStock() - p.getQuantity(); // 남은 재고 계산
-            if (remainingStock <= 0) {
-                product.markSoldOut(); // 품절 처리
-            } else {
-                product.updateProduct(
-                        product.getName(),
-                        product.getOrigin(),
-                        product.getExpiryDate(),
-                        product.getPrice(),
-                        remainingStock,
-                        product.getImageUrl()
-                ); // 재고 업데이트
-            }
-
-            // OrderProduct 객체 생성 (주문 당시 가격과 수량 스냅샷)
-            OrderProduct op = new OrderProduct();
-            op.setProduct(product); // 주문 상품에 상품 정보 설정
-            op.setQuantity(p.getQuantity()); // 주문 수량 설정
-            op.setPrice(product.getPrice()); // 주문 당시 가격 설정
-            return op;
-        }).toList();
-
-        // 4) 주문 생성
-        Order order = new Order();
-        order.setCustomer(customer); // 주문 고객 설정
-        order.setStore(store); // 주문 상점 설정
-        order.setStatus(OrderStatus.REQUESTED); // 주문 상태 초기화
-
-        // 배송비 계산 → 추후 수정 가능성
-        int fee = Math.min(BASE_DELIVERY_FEE + STORE_ADDITIONAL_FEE, MAX_DELIVERY_FEE);
-        order.setDeliveryFee(fee); // 배송비 설정
-
-        orderProducts.forEach(order::addOrderProduct); // 주문 상품 추가
-        order.calculateTotalPrice(); // 총 금액 계산
-
-        orderRepository.save(order); // DB 저장
-
-        // 5) DTO 변환
-        List<OrderProductResponseDto> productDtos = orderProducts.stream()
-                .map(op -> new OrderProductResponseDto(
-                        op.getProduct().getId(),
-                        op.getProduct().getName(),
-                        op.getPrice(),
-                        op.getQuantity()))
-                .toList();
-
-        long remainingMinutes = 0L; // 주문 생성 시점에는 0 - 주문 생성 시점 남은 시간
-
-        return new OrderResponseDto(
-                order.getId(),
-                order.getStatus(),
-                order.getTotalPrice(),
-                order.getDeliveryFee(),
-                order.getCreatedAt() != null ? order.getCreatedAt().format(FORMATTER) : null, // 주문 생성일
-                order.getCancelReason(), // 취소 사유
-                productDtos, // 주문 상품 DTO
-                Long.valueOf(remainingMinutes), // 남은 시간
-                order.getUpdatedAt() != null ? order.getUpdatedAt().format(FORMATTER) : null // 업데이트 시간
-        );
+        }
+        // 전부 차있으면 예외
+        throw new IllegalStateException("모든 픽업대가 사용 중입니다. 주문을 받을 수 없습니다.");
     }
 
     /*
@@ -142,6 +141,7 @@ public class OrderService {
         }
 
         order.setStatus(OrderStatus.CANCELED); // 주문 취소 상태로 변경
+        order.setPickupSlot(null);
 
         // 재고 복원
         for (OrderProduct op : order.getOrderProducts()) {
@@ -260,6 +260,21 @@ public class OrderService {
     }
 
     /*
+     * [9] 고객 픽업 완료 처리
+     * - 완료 시 픽업대 번호 초기화
+     */
+    @Transactional
+    public void completePickup(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주문입니다."));
+        if (order.getStatus() != OrderStatus.READY) {
+            throw new IllegalStateException("준비 완료된 주문만 픽업할 수 있습니다.");
+        }
+        order.setStatus(OrderStatus.COMPLETED);
+        order.setPickupSlot(null); // 픽업대 해제
+    }
+
+    /*
      * [Helper] Order → OrderResponseDto 변환
      * - 주문 상품 리스트 변환
      * - 주문 상태에 따라 남은 준비 시간 계산
@@ -289,7 +304,8 @@ public class OrderService {
                 order.getCancelReason(), // 취소 사유
                 products, // 주문 상품 DTO
                 remainingMinutes, // 남은 준비 시간
-                order.getUpdatedAt() != null ? order.getUpdatedAt().format(FORMATTER) : null // updatedAt
+                order.getUpdatedAt() != null ? order.getUpdatedAt().format(FORMATTER) : null, // updatedAt
+                order.getPickupSlot()
         );
     }
 }
