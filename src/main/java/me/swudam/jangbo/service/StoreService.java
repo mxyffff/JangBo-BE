@@ -43,6 +43,11 @@ public class StoreService {
         Merchant managedMerchant = merchantRepository.findById(merchant.getId())
                 .orElseThrow(() -> new NotFoundException("상인을 찾을 수 없습니다."));
 
+        // 상점 1개 제한
+        if (storeRepository.existsByMerchantId(managedMerchant.getId())) {
+            throw new IllegalArgumentException("상점은 상인당 1개만 등록할 수 있습니다.");
+        }
+
         // 휴무 요일 규칙 검증
         validateDayOff(storeFormDto);
 

@@ -7,6 +7,7 @@ import me.swudam.jangbo.entity.Merchant;
 import me.swudam.jangbo.entity.Product;
 import me.swudam.jangbo.repository.MerchantRepository;
 import me.swudam.jangbo.repository.ProductRepository;
+import me.swudam.jangbo.repository.StoreRepository;
 import me.swudam.jangbo.support.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final MerchantRepository merchantRepository;
+    private final StoreRepository storeRepository; // 주입 추가
 
     /* 조회 */
 
@@ -105,8 +107,13 @@ public class ProductService {
             throw new IllegalArgumentException("가격은 1원 이상이어야 합니다.");
         }
 
+        // 상점 자동 매핑 (상점 1개 전제)
+        var store = storeRepository.findByMerchantId(merchantId)
+                .orElseThrow(() -> new IllegalArgumentException("상점 등록 후 상품을 등록할 수 있습니다."));
+
         Product product = Product.builder()
                 .merchant(owner)
+                .store(store) // FK 세팅
                 .name(dto.getName())
                 .origin(dto.getOrigin())
                 .expiryDate(dto.getExpiryDate())
