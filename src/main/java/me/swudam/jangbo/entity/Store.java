@@ -12,9 +12,18 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-@ToString(exclude = "merchant")
+@ToString(exclude = {"merchant", "products"})
 @Entity
-@Table(name="store")
+@Table(name = "store",
+        // 추가
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_store_merchant", columnNames = "merchant_id")
+        },
+        indexes = {
+                @Index(name = "idx_store_merchant_id", columnList = "merchant_id"),
+                @Index(name = "idx_store_category", columnList = "category"),
+                @Index(name = "idx_store_store_name", columnList = "store_name")
+        })
 @Getter
 @Setter
 public class Store extends BaseTimeEntity{
@@ -49,12 +58,18 @@ public class Store extends BaseTimeEntity{
     @Enumerated(EnumType.STRING)
     private Category category; // 카테고리
 
+    // 수정
     // Merchant와의 관계 (FK)
-    @OneToOne
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "merchant_id", nullable = false)
     private Merchant merchant;
 
-    public static Store createStore(StoreFormDto storeFormDto, Merchant merchant){
+    // 추가
+    // 상품 영속성
+    @OneToMany(mappedBy = "store", cascade = {CascadeType.PERSIST, CascadeType.MERGE}, orphanRemoval = false)
+    private List<Product> products = new ArrayList<>();
+
+    public static Store createStore(StoreFormDto storeFormDto, Merchant merchant) {
         Store store = new Store();
 
         store.setStoreName(storeFormDto.getStoreName());

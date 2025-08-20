@@ -26,9 +26,9 @@ public class Merchant {
 
     private String password; // 비밀번호
 
-    // 상점 영속성
-    @OneToOne(mappedBy = "merchant", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Store store;
+    // 상인 영속성
+    @OneToMany(mappedBy = "merchant", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Store> stores = new ArrayList<>();
     // 상품 영속성
     @OneToMany(mappedBy = "merchant", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Product> products = new ArrayList<>();

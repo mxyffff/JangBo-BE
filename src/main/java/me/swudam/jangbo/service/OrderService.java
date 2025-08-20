@@ -92,7 +92,6 @@ public class OrderService {
             order.setCustomer(customer);
             order.setStore(store);
             order.setStatus(OrderStatus.REQUESTED);
-            order.setMerchant(store.getMerchant());
             order.setDeliveryFee(deliveryFee);
 
             orderProducts.forEach(order::addOrderProduct);
