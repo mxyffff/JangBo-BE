@@ -4,16 +4,15 @@ import me.swudam.jangbo.dto.MerchantSignupRequestDto;
 import me.swudam.jangbo.dto.MerchantUpdateDto;
 import me.swudam.jangbo.entity.Merchant;
 import lombok.RequiredArgsConstructor;
+import me.swudam.jangbo.entity.Order;
+import me.swudam.jangbo.entity.OrderStatus;
 import me.swudam.jangbo.repository.MerchantRepository;
+import me.swudam.jangbo.repository.OrderRepository;
 import me.swudam.jangbo.support.NotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.core.userdetails.User;
 
 import java.util.List;
 
@@ -24,6 +23,7 @@ import java.util.List;
 public class MerchantService {
 
     private final MerchantRepository merchantRepository; // DB 접근용
+    private final OrderRepository orderRepository; // 회원 탈퇴 시 주문 상태 MERCHANT_LEFT로
     private final PasswordEncoder passwordEncoder; // 비밀번호 암호화/검증
     private final EmailVerificationService emailVerificationService; // 이메일 인증 상태 확인/정리
 
@@ -90,6 +90,14 @@ public class MerchantService {
     // 회원탈퇴
     public void deleteMerchant(String email) {
         Merchant merchant = getMerchantByEmail(email);
+
+        // 1. 상인이 맡은 주문들 상태를 MERCHANT_LEFT로 변경
+        List<Order> orders = orderRepository.findByStore_Merchant_Id(merchant.getId());
+        for (Order order : orders) {
+            order.setStatus(OrderStatus.MERCHANT_LEFT);
+        }
+
+        // 2. 상인 삭제
         merchantRepository.delete(merchant);
     }
 
