@@ -35,7 +35,7 @@ public class MerchantSecurityConfig {
     // 수정
     public SecurityFilterChain filterChain(
             HttpSecurity http,
-            @Autowired(required = false) me.swudam.jangbo.filter.StoreRegistrationAuthenticationFilter storeRegistrationAuthenticationFilter
+            org.springframework.beans.factory.ObjectProvider<me.swudam.jangbo.filter.StoreRegistrationAuthenticationFilter> storeRegistrationAuthenticationFilterProvider
     ) throws Exception {
         http
                 .securityMatcher("/api/merchants/**", "/api/stores/**")
@@ -81,11 +81,13 @@ public class MerchantSecurityConfig {
                         .accessDeniedHandler(new CustomAccessDeniedHandler()) // 403 JSON 응답
                 );
 
-                // 수정
-                // dev 환경에서만 필터 추가
-                if (storeRegistrationAuthenticationFilter != null) {
-                    http.addFilterBefore(storeRegistrationAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
-                }
+        // 수정
+        // dev 환경에서만 필터 추가
+        me.swudam.jangbo.filter.StoreRegistrationAuthenticationFilter storeFilter =
+                storeRegistrationAuthenticationFilterProvider.getIfAvailable();
+        if (storeFilter != null) {
+            http.addFilterBefore(storeFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+        }
 
         return http.build();
     }
