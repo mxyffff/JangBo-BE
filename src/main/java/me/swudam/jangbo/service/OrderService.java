@@ -47,7 +47,7 @@ public class OrderService {
      * - OrderResponseDto 변환 후 반환
      */
     @Transactional
-    public List<OrderResponseDto> createOrders(Long customerId, OrderRequestDto orderRequestDto) {
+    public List<OrderResponseDto> createOrders(Long customerId, OrderRequestDto orderRequestDto, int oneTimePickupFee) {
         if (orderRequestDto.getStoreOrders() == null || orderRequestDto.getStoreOrders().isEmpty()) {
             throw new IllegalArgumentException("주문할 상점 정보가 없습니다.");
         }
@@ -56,18 +56,14 @@ public class OrderService {
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 고객입니다."));
 
-        // 2) 전체 주문할 상점 수 계산 → 배송비 공통 계산
-        int numStores = orderRequestDto.getStoreOrders().size();
-        int deliveryFee = Math.min(BASE_DELIVERY_FEE + STORE_ADDITIONAL_FEE * (numStores - 1), MAX_DELIVERY_FEE);
-
         List<OrderResponseDto> result = new ArrayList<>();
+        boolean feeApplied = false; // 첫 주문에만 수수료 적용
 
-        // 3) 각 상점별 주문 생성
         for (OrderRequestDto.StoreOrderDto storeOrder : orderRequestDto.getStoreOrders()) {
             Store store = storeRepository.findById(storeOrder.getStoreId())
                     .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상점입니다."));
 
-            // 주문 상품 처리
+            // 상품 → OrderProduct 변환 + 재고 차감/품절 처리
             List<OrderProduct> orderProducts = storeOrder.getProducts().stream().map(p -> {
                 Product product = productRepository.findById(p.getProductId())
                         .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상품입니다."));
@@ -87,12 +83,19 @@ public class OrderService {
                 return op;
             }).toList();
 
-            // Order 생성
+            // 주문 생성
             Order order = new Order();
             order.setCustomer(customer);
             order.setStore(store);
             order.setStatus(OrderStatus.REQUESTED);
-            order.setDeliveryFee(deliveryFee);
+
+            // ★ 수수료 한 번만 적용
+            if (!feeApplied) {
+                order.setDeliveryFee(oneTimePickupFee);
+                feeApplied = true;
+            } else {
+                order.setDeliveryFee(0);
+            }
 
             orderProducts.forEach(order::addOrderProduct);
             order.calculateTotalPrice();
@@ -102,8 +105,6 @@ public class OrderService {
             order.setPickupSlot(pickupSlot);
 
             orderRepository.save(order);
-
-            // DTO 변환 후 리스트에 추가
             result.add(toDto(order));
         }
         return result;
