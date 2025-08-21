@@ -2,6 +2,7 @@ package me.swudam.jangbo.config;
 
 import lombok.RequiredArgsConstructor;
 import me.swudam.jangbo.security.MerchantUserDetailsService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,7 +32,11 @@ public class MerchantSecurityConfig {
     // 상인 API 전용 Security Filter Chain
     @Bean
     @Order(1) // 먼저 매칭되도록
-    public SecurityFilterChain filterChain(HttpSecurity http, me.swudam.jangbo.filter.StoreRegistrationAuthenticationFilter storeRegistrationAuthenticationFilter) throws Exception {
+    // 수정
+    public SecurityFilterChain filterChain(
+            HttpSecurity http,
+            @Autowired(required = false) me.swudam.jangbo.filter.StoreRegistrationAuthenticationFilter storeRegistrationAuthenticationFilter
+    ) throws Exception {
         http
                 .securityMatcher("/api/merchants/**", "/api/stores/**")
                 .authenticationProvider(merchantDaoAuthProvider)
@@ -74,9 +79,13 @@ public class MerchantSecurityConfig {
                 .exceptionHandling(error -> error
                         .authenticationEntryPoint(new CustomAuthenticationEntryPoint()) // 401 인증 실패 JSON 응답
                         .accessDeniedHandler(new CustomAccessDeniedHandler()) // 403 JSON 응답
-                )
-                // 상점 등록 세션 Postman API 테스트용
-                .addFilterBefore(storeRegistrationAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+                );
+
+                // 수정
+                // dev 환경에서만 필터 추가
+                if (storeRegistrationAuthenticationFilter != null) {
+                    http.addFilterBefore(storeRegistrationAuthenticationFilter, org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+                }
 
         return http.build();
     }
