@@ -55,6 +55,7 @@ public class Product extends BaseTimeEntity {
     private Integer price;
 
     @Version // 가격 변동을 저장하기 위한 버전
+    @Column(nullable = false)
     private Long version;
 
     private Instant priceUpdatedAt;
@@ -69,9 +70,12 @@ public class Product extends BaseTimeEntity {
     @Comment("품절 여부")
     private Boolean soldOut;
 
+
     /* 저장/수정 직전에 공통 수행: 소유자 무결성 검사 + 가격 타임스탬프 갱신 */
     @PrePersist @PreUpdate
     private void beforeSave() {
+        // 안전장치
+        if (version == null) version = 0L;
         // 1) 소유 무결성 검사
         if (store == null || merchant == null){
             throw new IllegalStateException("상품에는 상점과 상인이 모두 설정되어야 합니다.");
