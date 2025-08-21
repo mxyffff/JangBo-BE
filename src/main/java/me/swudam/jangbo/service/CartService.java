@@ -1,6 +1,7 @@
 package me.swudam.jangbo.service;
 
 import lombok.RequiredArgsConstructor;
+import me.swudam.jangbo.dto.OrderRequestDto;
 import me.swudam.jangbo.dto.cart.*;
 import me.swudam.jangbo.entity.*;
 import me.swudam.jangbo.repository.*;
@@ -190,6 +191,56 @@ public class CartService {
         if (next < 1) throw new IllegalArgumentException("수량은 1 이상이어야 합니다.");
         item.changeQuantity(next);
         return UpdateQuantityResponseDto.builder().itemId(itemId).quantity(next).message("OK").build();
+    }
+
+    // 선택 항목 주문하기
+    @Transactional(readOnly = true)
+    public OrderRequestDto buildOrderRequestFromSelection(Long customerId, Collection<Long> selectedItemIds) {
+        // 1. 내 장바구니 로딩
+        Cart cart = cartRepository.findWithItemsByCustomer_Id(customerId)
+                .orElseThrow(() -> new IllegalArgumentException("장바구니가 없습니다."));
+        // 2. 결제 대상 아이템 목록 결정 (선택 없으면 전체)
+        final List<CartItem> targets;
+        if (selectedItemIds == null || selectedItemIds.isEmpty()) {
+            targets = cartItemRepository.findAllByCart_Id(cart.getId());
+        } else {
+            targets = cartItemRepository.findAllByCart_IdAndIdIn(cart.getId(), selectedItemIds).stream()
+                    // 보안: 내 장바구니 항목만
+                    .filter(ci -> Objects.equals(ci.getCart().getId(), cart.getId()))
+                    .toList();
+        }
+        if (targets.isEmpty()) {
+            throw new IllegalArgumentException("주문할 항목이 없습니다.");
+        }
+
+        // 3. 상점별 그룹핑 -> OrderRequestDto.StoreOrderDto 리스트 구성
+        Map<Long, List<CartItem>> byStore = targets.stream()
+                .collect(Collectors.groupingBy(ci -> ci.getStore().getId()));
+
+        List<OrderRequestDto.StoreOrderDto> storeOrderDtos = new ArrayList<>();
+
+        for (Map.Entry<Long, List<CartItem>> entry : byStore.entrySet()) {
+            Long storeId = entry.getKey();
+            List<CartItem> items = entry.getValue();
+
+            OrderRequestDto.StoreOrderDto sod = new OrderRequestDto.StoreOrderDto();
+            sod.setStoreId(storeId);
+
+            List<OrderRequestDto.ProductOrderDto> productOrderDtos = new ArrayList<>();
+            for (CartItem ci : items) {
+                OrderRequestDto.ProductOrderDto pd = new OrderRequestDto.ProductOrderDto();
+                pd.setProductId(ci.getProduct().getId());
+                pd.setQuantity(ci.getQuantity());
+                productOrderDtos.add(pd);
+            }
+            sod.setProducts(productOrderDtos);
+            storeOrderDtos.add(sod);
+        }
+
+        // 4) OrderRequestDto 만들어 채우고 반환
+        OrderRequestDto req = new OrderRequestDto();
+        req.setStoreOrders(storeOrderDtos);
+        return req;
     }
 
     // 단일 항목 삭제

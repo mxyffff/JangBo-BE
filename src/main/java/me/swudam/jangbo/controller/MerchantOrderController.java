@@ -2,6 +2,8 @@ package me.swudam.jangbo.controller;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import me.swudam.jangbo.dto.OrderResponseDto;
+import me.swudam.jangbo.entity.Merchant;
 import me.swudam.jangbo.service.MerchantService;
 import me.swudam.jangbo.service.OrderService;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -51,18 +54,20 @@ public class MerchantOrderController {
     private Long getMerchantId(HttpSession session) {
         String email = getAuthenticatedMerchantEmail(session);
         if (email == null) throw new AuthenticationCredentialsNotFoundException("로그인이 필요합니다.");
-        return merchantService.getMerchantByEmail(email).getId(); // MerchantService의 기존 메서드 사용
+        Merchant merchant = merchantService.getMerchantByEmail(email);
+        if (merchant == null) {
+            throw new AuthenticationCredentialsNotFoundException("상인 정보를 찾을 수 없습니다.");
+        }
+        return merchant.getId();
     }
 
     /* 주문 관련 API */
     // 1. 상인 기준 주문 목록 조회
     // GET - /api/merchants/orders
     @GetMapping
-    public ResponseEntity<?> getOrders(HttpSession session) {
+    public ResponseEntity<List<OrderResponseDto>> getOrders(HttpSession session) {
         Long merchantId = getMerchantId(session); // 상인 ID 가져오기
-        return ResponseEntity.ok(Map.of(
-                "orders", orderService.getOrdersByMerchant(merchantId)
-        ));
+        return ResponseEntity.ok(orderService.getOrdersByMerchant(merchantId));
     }
 
     // 2. 주문 수락 + 준비시간 설정
@@ -71,6 +76,12 @@ public class MerchantOrderController {
     public ResponseEntity<?> acceptOrder(@PathVariable Long orderId,
                                          @RequestParam Integer preparationTime,
                                          HttpSession session) {
+        if (preparationTime == null || preparationTime <= 0) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "updated", false,
+                    "message", "준비 시간은 1분 이상이어야 합니다."
+            ));
+        }
         Long merchantId = getMerchantId(session);
         try {
             orderService.acceptOrder(merchantId, orderId, preparationTime);
@@ -78,7 +89,7 @@ public class MerchantOrderController {
                     "updated", true,
                     "message", "주문이 수락되었습니다. 준비 시간: " + preparationTime + "분"
             ));
-        } catch (IllegalStateException ex) { // 예외 처리 BadRequest
+        } catch (IllegalStateException | IllegalArgumentException ex) { // 예외 처리 BadRequest
             return ResponseEntity.badRequest().body(Map.of(
                     "updated", false,
                     "message", ex.getMessage()
@@ -97,7 +108,7 @@ public class MerchantOrderController {
                     "updated", true,
                     "message", "주문 준비가 완료되었습니다."
             ));
-        } catch (IllegalStateException ex) {
+        } catch (IllegalStateException | IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of(
                     "updated", false,
                     "message", ex.getMessage()
@@ -118,7 +129,7 @@ public class MerchantOrderController {
                     "updated", true,
                     "message", "주문이 취소되었습니다. 사유: " + reason
             ));
-        } catch (IllegalStateException ex) {
+        } catch (IllegalStateException | IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of(
                     "updated", false,
                     "message", ex.getMessage()
