@@ -17,16 +17,17 @@ import java.util.Map;
 public class MerchantPaymentController {
 
     private final PaymentService paymentService;
-    private final MerchantService merchantService; // 이메일 → 상인 ID 조회용
+    private final MerchantService merchantService;
 
+    // 세션에서 상인 ID 추출
     private Long getMerchantIdFromSession(HttpSession session) {
-        String email = (String) session.getAttribute("merchantEmail"); // 세션에서 이메일 꺼내기
+        String email = (String) session.getAttribute("merchantEmail");
         if (email == null) throw new AuthenticationCredentialsNotFoundException("로그인이 필요합니다.");
         return merchantService.getMerchantByEmail(email).getId();
     }
 
-    // 특정 주문 건에 대한 결제 내역 조회
-    // GET - /api/merchant/payments/{orderId}
+    // 특정 주문 건 결제 내역 조회
+    // GET - /api/merchants/payments/{orderId}
     @GetMapping("/{orderId}")
     public ResponseEntity<?> getPaymentForMerchant(@PathVariable Long orderId, HttpSession session) {
         Long merchantId = getMerchantIdFromSession(session);
@@ -42,11 +43,15 @@ public class MerchantPaymentController {
                     "success", false,
                     "message", "해당 주문에 접근할 권한이 없습니다."
             ));
-        } catch (IllegalArgumentException ex) {
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
-                    "message", ex.getMessage()
+                    "message", e.getMessage()
             ));
         }
     }
+
+    // 상인은 결제 승인/취소 권한 없음
+    // 따라서, approve/decline/cancel 관련 엔드포인트는 제공하지 않음
+    // 결제 상태 변경은 오직 CustomerPaymentController에서 처리
 }

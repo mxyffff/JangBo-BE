@@ -34,93 +34,122 @@ public class PaymentService {
     }
 
     /*
-     * [2] 결제 승인 처리
-     * - 주문 ID로 Order를 조회 (없으면 예외 발생)
-     * - 해당 Order에 Payment 객체가 없으면 새로 생성 후 저장
-     *   > 금액 = 주문 총 금액 + 배달(픽업) 수수료
-     *   > 결제 방법 = 계좌이체 (하드코딩)
-     *   > 상태 = APPROVED
-     * - 이미 Payment가 존재하면 상태만 APPROVED로 변경
-     * - Order 상태도 'ACCEPTED(주문 수락됨)' 으로 변경
-     * - 최종적으로 PaymentResponseDto 반환
+     * [2] 결제 요청 생성
+     * - Order 존재 확인
+     * - Payment가 없으면 새로 생성(PENDING)
+     * - 이미 존재하면 상태 그대로 반환
      */
     @Transactional
-    public PaymentResponseDto approvePayment(Long orderId){
+    public PaymentResponseDto requestPayment(Long orderId) { // ★신규 메서드
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주문입니다."));
 
         Payment payment = order.getPayment();
-        if (payment == null){
-            // Payment가 아직 없으면 새로 생성
+        if (payment == null) {
             payment = Payment.builder()
                     .order(order)
                     .amount(BigDecimal.valueOf(order.getTotalPrice() + order.getDeliveryFee()))
                     .method("ACCOUNT_TRANSFER")
-                    .status(PaymentStatus.APPROVED)
+                    .status(PaymentStatus.PENDING) // PENDING으로 생성
                     .build();
             paymentRepository.save(payment);
             order.setPayment(payment);
-        } else {
-            // 기존 결제 정보가 있으면 상태만 갱신
-            payment.setStatus(PaymentStatus.APPROVED);
         }
 
-        // Order 상태를 결제 완료로 변경
+        return toDto(payment);
+    }
+
+    /*
+     * [3] 결제 승인 처리
+     * - 기존 PENDING 결제를 APPROVED로 변경
+     * - Order 상태 ACCEPTED로 변경
+     */
+    @Transactional
+    public PaymentResponseDto approvePayment(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주문입니다."));
+
+        if (order.getStatus() == OrderStatus.ACCEPTED ||
+                order.getStatus() == OrderStatus.PREPARING ||
+                order.getStatus() == OrderStatus.READY ||
+                order.getStatus() == OrderStatus.COMPLETED) {
+            throw new IllegalStateException("이미 결제되었거나 준비 중인 주문입니다.");
+        }
+
+        Payment payment = order.getPayment();
+        if (payment == null || payment.getStatus() != PaymentStatus.PENDING) {
+            throw new IllegalStateException("결제 요청이 존재하지 않거나 이미 처리된 결제입니다.");
+        }
+
+        payment.setStatus(PaymentStatus.APPROVED);
         order.setStatus(OrderStatus.ACCEPTED);
 
         return toDto(payment);
     }
 
+
     /*
-     * [3] 결제 거부 처리
-     * - orderId로 Payment 조회 (없으면 예외 발생)
-     * - Payment 상태를 DECLINED로 변경
-     * - Order 상태는 변경하지 않음
+     * [4] 결제 거부 처리
+     * - PENDING 결제를 DECLINED로 변경
+     * - Order 상태는 REQUESTED 유지
      */
     @Transactional
-    public PaymentResponseDto declinePayment(Long orderId){
+    public PaymentResponseDto declinePayment(Long orderId) {
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("결제 정보가 존재하지 않습니다."));
+        Order order = payment.getOrder();
+
+        if(order.getStatus() == OrderStatus.ACCEPTED ||
+                order.getStatus() == OrderStatus.PREPARING ||
+                order.getStatus() == OrderStatus.READY ||
+                order.getStatus() == OrderStatus.COMPLETED){
+            throw new IllegalStateException("이미 진행 중인 주문은 결제를 거부할 수 없습니다.");
+        }
+
+        if(payment.getStatus() != PaymentStatus.PENDING){
+            throw new IllegalStateException("처리 가능한 결제가 아닙니다.");
+        }
+
         payment.setStatus(PaymentStatus.DECLINED);
+        order.setStatus(OrderStatus.REQUESTED); // 결제 실패 시 주문 초기 상태 유지
 
         return toDto(payment);
     }
 
     /*
-     * [4] 결제 취소 처리
-     * - orderId로 Payment 조회 (없으면 예외 발생)
-     * - Payment 상태를 CANCELED로 변경
-     * - Order 상태도 다시 "REQUESTED(주문 요청됨)"으로 되돌린다.
+     * [5] 결제 취소 처리
+     * - PENDING 혹은 APPROVED 결제를 CANCELED로 변경
+     * - Order 상태 REQUESTED로 되돌림
      */
     @Transactional
     public PaymentResponseDto cancelPayment(Long orderId){
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("결제 정보가 존재하지 않습니다."));
-        payment.setStatus(PaymentStatus.CANCELED);
-
-        // Order 상태는 다시 REQUESTED로 되돌림
-        // 결제 취소 시 주문 상태도 초기화
         Order order = payment.getOrder();
+
+        if(order.getStatus() == OrderStatus.READY || order.getStatus() == OrderStatus.COMPLETED){
+            throw new IllegalStateException("이미 준비 완료된 주문은 결제를 취소할 수 없습니다.");
+        }
+
+        if(payment.getStatus() != PaymentStatus.PENDING && payment.getStatus() != PaymentStatus.APPROVED){
+            throw new IllegalStateException("취소 가능한 결제가 아닙니다.");
+        }
+
+        payment.setStatus(PaymentStatus.CANCELED);
         order.setStatus(OrderStatus.REQUESTED);
 
         return toDto(payment);
     }
 
     /*
-     * [5] 상인 전용 - 특정 주문 건의 결제 내역 조회
-     * - orderId로 Order 조회
-     * - 해당 Order의 Store의 Merchant ID와 요청한 merchantId 비교
-     * - 다르면 AccessDeniedException 발생
-     * - 결제 정보(Payment)가 없으면 예외 발생
-     * - 있으면 PaymentResponseDto 반환
+     * [6] 상인 전용 - 특정 주문 건의 결제 내역 조회
      */
     @Transactional(readOnly = true)
     public PaymentResponseDto getPaymentForMerchant(Long orderId, Long merchantId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("주문을 찾을 수 없습니다."));
 
-        // 본인 가게 주문인지 확인
-        if (!order.getStore().getMerchant().getId().equals(merchantId)) {
+        if(!order.getStore().getMerchant().getId().equals(merchantId)){
             throw new SecurityException("해당 주문에 접근할 권한이 없습니다.");
         }
 
@@ -129,7 +158,6 @@ public class PaymentService {
 
         return toDto(payment);
     }
-
 
     /*
      * [Helper] Entity → DTO 변환
