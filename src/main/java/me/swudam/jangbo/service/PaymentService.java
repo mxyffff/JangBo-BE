@@ -1,6 +1,7 @@
 package me.swudam.jangbo.service;
 
 import lombok.RequiredArgsConstructor;
+import me.swudam.jangbo.dto.CheckoutResponseDto;
 import me.swudam.jangbo.dto.PaymentResponseDto;
 import me.swudam.jangbo.entity.Order;
 import me.swudam.jangbo.entity.OrderStatus;
@@ -12,6 +13,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -191,6 +193,47 @@ public class PaymentService {
                 .orElseThrow(() -> new IllegalArgumentException("결제 내역이 존재하지 않습니다."));
 
         return toDto(payment);
+    }
+
+    /*
+     * [7] 주문/결제 정보 확인
+     * - 주문자 정보, 주문 상품 리스트, 결제 관련 정보를 조회
+     * - CheckoutResponseDto로 변환하여 반환
+     * - OrderProduct → OrderProductInfo 변환
+     * - Payment.amount를 최종 결제 금액으로 사용
+     * - 픽업 시장은 FE에서 고정값 사용
+     */
+    @Transactional(readOnly = true)
+    public CheckoutResponseDto getCheckoutInfo(Long orderId) {
+        // 주문 조회
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("주문 ID " + orderId + "가 존재하지 않습니다."));
+
+        Payment payment = order.getPayment();
+        if (payment == null) {
+            throw new IllegalArgumentException("주문 ID " + orderId + "에 대한 결제 정보가 존재하지 않습니다.");
+        }
+
+        // 주문 상품 리스트 변환
+        List<CheckoutResponseDto.OrderProductInfo> items = order.getOrderProducts().stream()
+                .map(op -> new CheckoutResponseDto.OrderProductInfo(
+                        op.getProduct().getName(),
+                        op.getProduct().getStore().getStoreName().replace("\n", "").trim(),
+                        op.getPrice(),
+                        op.getQuantity()
+                ))
+                .toList();
+
+        // DTO 생성
+        return new CheckoutResponseDto(
+                items,
+                "공릉 도깨비시장", // 시장 이름 고정
+                order.getCustomer().getUsername(),
+                order.getCustomer().getEmail(),
+                order.getTotalPrice(),
+                order.getDeliveryFee(),
+                payment.getAmount().intValue()
+        );
     }
 
     /*

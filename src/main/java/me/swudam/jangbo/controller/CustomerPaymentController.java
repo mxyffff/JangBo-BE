@@ -1,6 +1,7 @@
 package me.swudam.jangbo.controller;
 
 import lombok.RequiredArgsConstructor;
+import me.swudam.jangbo.dto.CheckoutResponseDto;
 import me.swudam.jangbo.dto.PaymentResponseDto;
 import me.swudam.jangbo.service.PaymentService;
 import org.springframework.http.ResponseEntity;
@@ -106,6 +107,24 @@ public class CustomerPaymentController {
         } catch (IllegalArgumentException | IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of(
                     "updated", false,
+                    "message", e.getMessage()
+            ));
+        }
+    }
+
+    // 7. 주문/결제 정보 확인
+    // GET - /api/payments/{orderId}/checkout
+    @GetMapping("/{orderId}/checkout")
+    public ResponseEntity<?> getCheckoutInfo(@PathVariable Long orderId) {
+        try {
+            CheckoutResponseDto response = paymentService.getCheckoutInfo(orderId);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "checkout", response
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
                     "message", e.getMessage()
             ));
         }
