@@ -16,8 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
-// 테스트용 주석 처리 - 0822
-//@Profile("dev")
+@Profile("dev")
 @Component
 public class StoreRegistrationAuthenticationFilter extends OncePerRequestFilter {
 
