@@ -8,9 +8,9 @@ import me.swudam.jangbo.entity.Payment;
 import me.swudam.jangbo.entity.PaymentStatus;
 import me.swudam.jangbo.repository.OrderRepository;
 import me.swudam.jangbo.repository.PaymentRepository;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
 
 @Service
@@ -19,6 +19,7 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
+    private final StringRedisTemplate redisTemplate;
 
     /*
      * [1] 특정 주문에 대한 결제 정보 조회
@@ -38,25 +39,58 @@ public class PaymentService {
      * - Order 존재 확인
      * - Payment가 없으면 새로 생성(PENDING)
      * - 이미 존재하면 상태 그대로 반환
+     * - 기존 결제가 DECLINED/CANCELED 상태이면 → PENDING으로 초기화
+     * - Redis를 이용해 30초 안에 중복 요청 방지
      */
     @Transactional
-    public PaymentResponseDto requestPayment(Long orderId) { // ★신규 메서드
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주문입니다."));
+    public PaymentResponseDto requestPayment(Long orderId) {
+        String redisKey = "payment_request:" + orderId;
 
-        Payment payment = order.getPayment();
-        if (payment == null) {
-            payment = Payment.builder()
-                    .order(order)
-                    .amount(BigDecimal.valueOf(order.getTotalPrice() + order.getDeliveryFee()))
-                    .method("ACCOUNT_TRANSFER")
-                    .status(PaymentStatus.PENDING) // PENDING으로 생성
-                    .build();
-            paymentRepository.save(payment);
-            order.setPayment(payment);
+        // Redis 락 획득
+        Boolean isNew = redisTemplate.opsForValue().setIfAbsent(
+                redisKey,
+                "LOCK",
+                30, // TTL 30초
+                java.util.concurrent.TimeUnit.SECONDS
+        );
+
+        if (Boolean.FALSE.equals(isNew)) {
+            throw new IllegalStateException("이미 결제 요청이 진행 중입니다. 잠시 후 다시 시도해주세요.");
         }
 
-        return toDto(payment);
+        try {
+            Order order = orderRepository.findById(orderId)
+                    .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주문입니다."));
+
+            Payment payment = order.getPayment();
+            if (payment == null) {
+                // 새 결제 생성
+                payment = Payment.builder()
+                        .order(order)
+                        .amount(BigDecimal.valueOf(order.getTotalPrice() + order.getDeliveryFee()))
+                        .method("ACCOUNT_TRANSFER")
+                        .status(PaymentStatus.PENDING)
+                        .build();
+                paymentRepository.save(payment);
+                order.setPayment(payment);
+            } else if (payment.getStatus() == PaymentStatus.DECLINED ||
+                    payment.getStatus() == PaymentStatus.CANCELED) {
+                // 기존 결제가 DECLINED/CANCELED → PENDING으로 초기화
+                payment.setStatus(PaymentStatus.PENDING);
+                paymentRepository.save(payment);
+            }
+            // 최신 주문 정보 반영
+            payment.setAmount(BigDecimal.valueOf(order.getTotalPrice() + order.getDeliveryFee()));
+            paymentRepository.save(payment);
+
+            // PENDING/APPROVED는 그대로 사용
+            return toDto(payment);
+
+        } catch (Exception e) {
+            // 예외 발생 시 락 해제
+            redisTemplate.delete(redisKey);
+            throw e;
+        }
     }
 
     /*

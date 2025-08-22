@@ -31,6 +31,11 @@ public class CustomerPaymentController {
                     "success", false,
                     "message", e.getMessage()
             ));
+        } catch (IllegalStateException e) {  // Redis 락 중복 요청 예외
+            return ResponseEntity.status(409).body(Map.of(  // 409 Conflict
+                    "success", false,
+                    "message", e.getMessage()
+            ));
         }
     }
 
