@@ -59,6 +59,9 @@ public class CustomerApiSecurityConfig {
                         // 고객 공개 상품 조회(API)는 전체 공개 (ProductCustomerController)
                         .requestMatchers("/api/products/**").permitAll()
 
+                        // 마이페이지 API는 인증 필요
+                        .requestMatchers("/api/customers/me/**").authenticated()
+
                         // 그 외는 기본 막기 → 점진 개방
                         .anyRequest().denyAll()
                 )

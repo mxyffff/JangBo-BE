@@ -9,7 +9,8 @@ public enum OrderStatus {
     COMPLETED, // 픽업 완료
     CANCELED, // 주문 취소
 
-    MERCHANT_LEFT; // 만약 상인이 회원탈퇴했을 경우, 주문은 보존하되 이 상태로 전환
+    MERCHANT_LEFT, // 만약 상인이 회원탈퇴했을 경우, 주문은 보존하되 이 상태로 전환
+    CUSTOMER_LEFT; // 만약 고객이 회원탈퇴했을 경우, 주문은 보존하되 이 상태로 전환
 
     public boolean canBeCanceledByCustomer() {
         return this == REQUESTED;

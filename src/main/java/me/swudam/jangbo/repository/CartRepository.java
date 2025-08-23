@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -35,4 +36,8 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from Cart c where c.customer.id = :customerId")
     Optional<Cart> findByCustomerIdForUpdate(Long customerId);
+
+    // 마이페이지 - 회원탈퇴 로직
+    @Transactional
+    void deleteByCustomerId(Long customerId);
 }

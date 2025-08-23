@@ -2,12 +2,20 @@ package me.swudam.jangbo.service;
 
 import lombok.RequiredArgsConstructor;
 import me.swudam.jangbo.dto.CustomerSignupRequestDto;
+import me.swudam.jangbo.dto.CustomerUpdateDto;
 import me.swudam.jangbo.entity.Customer;
+import me.swudam.jangbo.entity.Order;
+import me.swudam.jangbo.entity.OrderStatus;
+import me.swudam.jangbo.repository.CartRepository;
 import me.swudam.jangbo.repository.CustomerRepository;
+import me.swudam.jangbo.repository.OrderRepository;
+import me.swudam.jangbo.support.NotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -16,6 +24,10 @@ public class CustomerService {
     private final CustomerRepository customerRepository; // DB 접근
     private final EmailVerificationService emailVerificationService; // 이메일 인증 상태 확인/정리
     private final PasswordEncoder passwordEncoder; // 비밀번호 해시
+
+    // 마이페이지
+    private final CartRepository cartRepository; // 장바구니
+    private final OrderRepository orderRepository; // 주문
 
     // 이메일 인증 요구할지 여부: 기본값 true - properties 설정
     @Value("${auth.email.verify.required:true}")
@@ -97,6 +109,59 @@ public class CustomerService {
         if (email == null || email.isBlank()) return false;
         // 이메일은 normalizeEmail로 소문자/trim 처리 후 조회
         return customerRepository.existsByEmail(normalizeEmail(email));
+    }
+
+    // 고객 마이페이지
+    // 1. 이메일 기반 고객 조회
+    @Transactional(readOnly = true)
+    public Customer getCustomerByEmail(String email) {
+        return customerRepository.findByEmail(email) // 이메일로 고객 조회
+                .orElseThrow(() -> new NotFoundException("고객을 찾을 수 없습니다.")); // 없으면 예외
+    }
+
+    // 2. 개인정보 수정 - 이메일 기반
+    public void updateCustomer(String email, CustomerUpdateDto dto) {
+        Customer customer = getCustomerByEmail(email);
+
+        // 비밀번호 변경
+        if (dto.getNewPassword() != null && !dto.getNewPassword().isBlank()) {
+            if (!dto.getNewPassword().equals(dto.getNewPasswordConfirm())) {
+                throw new IllegalArgumentException("새 비밀번호와 확인이 일치하지 않습니다.");
+            }
+            customer.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        }
+        // 닉네임 변경
+        if (dto.getUsername() != null && !dto.getUsername().isBlank()) {
+            String newUsername = safeTrim(dto.getUsername());
+
+            // 중복 체크 (본인 제외)
+            Customer existing = customerRepository.findByUsername(newUsername).orElse(null);
+            if (existing != null && !existing.getEmail().equals(email)) {
+                throw new IllegalArgumentException("이미 사용 중인 닉네임입니다.");
+            }
+            customer.setUsername(newUsername);
+        }
+        customerRepository.save(customer);
+    }
+
+    // 3. 회원탈퇴
+    @Transactional
+    public void deleteCustomer(String email) {
+        Customer customer = getCustomerByEmail(email);
+
+        // 1. 완료되지 않은 장바구니 삭제
+        cartRepository.deleteByCustomerId(customer.getId());
+
+        // 2. 주문 상태만 변경
+        List<Order> orders = orderRepository.findByCustomerId(customer.getId());
+        for (Order order : orders) {
+            order.setStatus(OrderStatus.CUSTOMER_LEFT);
+        }
+        orderRepository.saveAll(orders);
+
+        // 3. 고객 삭제 대신 soft delete
+        customer.setDeleted(true);
+        customerRepository.save(customer);
     }
 
     // 안전한 trim: null -> 빈문자열 방지 & 에러 메시지 일관화에 유리

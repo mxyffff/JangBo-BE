@@ -3,13 +3,11 @@ package me.swudam.jangbo.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
-import me.swudam.jangbo.dto.MerchantSignupRequestDto;
 import me.swudam.jangbo.dto.MerchantUpdateDto;
 import me.swudam.jangbo.entity.Merchant;
 import me.swudam.jangbo.repository.MerchantRepository;
 import me.swudam.jangbo.service.EmailVerificationService;
 import me.swudam.jangbo.service.MerchantService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -17,7 +15,6 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -122,6 +119,7 @@ public class MerchantController {
     }
 
     /* 7. 회원탈퇴 */
+    // DELETE - /api/merchants/me
     @DeleteMapping("/me")
     public ResponseEntity<?> deleteMe(HttpSession session) {
         String email = getAuthenticatedMerchantEmail(session);
@@ -130,6 +128,21 @@ public class MerchantController {
         }
         merchantService.deleteMerchant(email); // 비밀번호 입력 없이 탈퇴
         return ResponseEntity.ok(Map.of("deleted", true));
+    }
+
+    /* 8. 이름만 반환 */
+    // GET - /api/merchants/me/username
+    @GetMapping("/me/username")
+    public ResponseEntity<?> getUsername(HttpSession session) {
+        String email = getAuthenticatedMerchantEmail(session);
+        if (email == null) {
+            throw new AuthenticationCredentialsNotFoundException("로그인이 필요합니다.");
+        }
+        String username = merchantService.getMerchantByEmail(email).getUsername();
+
+        return ResponseEntity.ok(Map.of(
+                "username", username
+        ));
     }
 
     // Helper: 현재 로그인한 상인 이메일 가져오기

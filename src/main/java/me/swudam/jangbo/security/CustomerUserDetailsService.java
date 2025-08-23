@@ -39,6 +39,11 @@ public class CustomerUserDetailsService implements UserDetailsService {
         Customer customer = customerRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new UsernameNotFoundException("이메일을 찾을 수 없습니다." + email));
 
+        // -- 고객 탈퇴 여부 체크
+        if (customer.isDeleted()) {
+            throw new UsernameNotFoundException("탈퇴한 회원입니다: " + email);
+        }
+
         // 4. Customer 엔티티를 시큐리티 표준 모델(UserDetails)로 감싸서 반환
         // - 내부에서 getUsername()은 이메일, getPassword()는 BCrypt 해시를 제공함
         return new CustomerUserDetails(customer);

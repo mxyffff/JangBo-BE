@@ -22,6 +22,7 @@ public class Customer extends BaseTimeEntity {
     private Long id;
 
     // username (닉네임, 로그인 id는 email  사용)
+    @Setter // 마이페이지 - 개인정보 변경 위해 Setter 추가
     @Column(nullable = false, length = 30)
     private String username;
 
@@ -30,6 +31,11 @@ public class Customer extends BaseTimeEntity {
     private String email;
 
     // BCrypt 해시 적용된 password
+    @Setter // 마이페이지 - 개인정보 변경 위해 Setter 추가
     @Column(name = "password", nullable = false, length = 100)
     private String password;
+
+    // 마이페이지 - 회원탈퇴용 삭제 플래그
+    @Setter
+    private boolean deleted = false;
 }
