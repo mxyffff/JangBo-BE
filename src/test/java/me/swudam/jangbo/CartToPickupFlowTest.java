@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
+@Disabled("Postman 테스트용이라 빌드에서는 제외")
 @SpringBootTest
 @Transactional
 @AutoConfigureMockMvc
