@@ -38,6 +38,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // 이름 검색 + 저가순
     List<Product> findByNameContainingIgnoreCaseOrderByPriceAsc(String keyword);
 
+
     // 존재 여부: 중복 검증이나 사전 체크용
     boolean existsByIdAndMerchantId(Long productId, Long merchantId);
 }
