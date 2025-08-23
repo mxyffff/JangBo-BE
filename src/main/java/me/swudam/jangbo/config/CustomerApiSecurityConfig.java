@@ -24,7 +24,7 @@ public class CustomerApiSecurityConfig {
             HttpSecurity http
     ) throws Exception {
         http
-                .securityMatcher("/api/customers/**", "/api/products/**", "/api/carts/**")
+                .securityMatcher("/api/customers/**", "/api/products/**", "/api/carts/**", "/api/ai/**")
                 .authenticationProvider(customerDaoAuthProvider)
 
                 // REST API는 폼 로그인/로그인 페이지가 필요 없음
@@ -50,11 +50,14 @@ public class CustomerApiSecurityConfig {
                         .requestMatchers("/api/customers/email/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/customers/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/customers/exists/username").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/ai/ingredients/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/ai/recommendations/**").permitAll()
 
                         // 고객 상태 확인/로그아웃은 인증 필요
                         .requestMatchers("/api/customers/me").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/customers/logout").authenticated()
                         .requestMatchers("/api/carts/**").authenticated()
+                        .requestMatchers("/api/ai/cart/bulk-add").authenticated()
 
                         // 고객 공개 상품 조회(API)는 전체 공개 (ProductCustomerController)
                         .requestMatchers("/api/products/**").permitAll()
