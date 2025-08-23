@@ -1,9 +1,10 @@
 package me.swudam.jangbo.service;
 
 import lombok.RequiredArgsConstructor;
-import me.swudam.jangbo.dto.OrderProductResponseDto;
-import me.swudam.jangbo.dto.OrderRequestDto;
-import me.swudam.jangbo.dto.OrderResponseDto;
+import me.swudam.jangbo.dto.order.OrderProductResponseDto;
+import me.swudam.jangbo.dto.order.OrderRequestDto;
+import me.swudam.jangbo.dto.order.OrderResponseDto;
+import me.swudam.jangbo.dto.PickupCounterResponseDto;
 import me.swudam.jangbo.entity.*;
 import me.swudam.jangbo.repository.CustomerRepository;
 import me.swudam.jangbo.repository.OrderRepository;
@@ -17,10 +18,15 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
+/*
+    ORDER + PICKUP
+*/
 public class OrderService {
 
     private final OrderRepository orderRepository;
@@ -275,6 +281,50 @@ public class OrderService {
     }
 
     /*
+     * [10] PUBLIC - 특정 픽업대 현황 조회
+     * - 특정 픽업대 + 주문 조회
+     */
+    public List<PickupCounterResponseDto> getCountersByStore(Long storeId) {
+        Store store = storeRepository.findById(storeId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 상점입니다."));
+        List<PickupCounterResponseDto> counters = new ArrayList<>();
+
+        // 1~10번 픽업대 체크
+        for (int i = 1; i <= MAX_PICKUP_SLOT; i++) {
+            // 해당 슬롯에 주문 있는지 조회 (CANCELED, COMPLETED 제외)
+            Order order = orderRepository.findByPickupSlotAndStoreId(i, storeId)
+                    .orElse(null);
+            counters.add(PickupCounterResponseDto.builder()
+                    .counterNumber(i)
+                    .order(order != null ? toDto(order) : null)
+                    .build());
+        }
+        return counters;
+    }
+
+    /*
+     * [11] PUBLIC - 모든 픽업대 현황 조회
+     * - 1~10번 픽업대 + 주문 조회
+     */
+    public Map<Long, List<PickupCounterResponseDto>> getAllStoresCounters() {
+        Map<Long, List<PickupCounterResponseDto>> result = new HashMap<>();
+        List<Store> stores = storeRepository.findAll();
+
+        for (Store store : stores) {
+            List<PickupCounterResponseDto> counters = new ArrayList<>();
+            for (int i = 1; i <= MAX_PICKUP_SLOT; i++) {
+                Order order = orderRepository.findByPickupSlotAndStoreId(i, store.getId()).orElse(null);
+                counters.add(PickupCounterResponseDto.builder()
+                        .counterNumber(i)
+                        .order(order != null ? toDto(order) : null)
+                        .build());
+            }
+            result.put(store.getId(), counters);
+        }
+        return result;
+    }
+
+    /*
      * [Helper] Order → OrderResponseDto 변환
      * - 주문 상품 리스트 변환
      * - 주문 상태에 따라 남은 준비 시간 계산
@@ -289,12 +339,14 @@ public class OrderService {
                         op.getQuantity()))
                 .toList(); // 주문 상품 DTO 반환
 
-        Long remainingMinutes = 0L; // 남은 준비 시간 초기화
-        if (order.getStatus() == OrderStatus.ACCEPTED || order.getStatus() == OrderStatus.PREPARING) {
+        // 남은 준비시간/수락시간
+        Long remainingMinutes = 0L;
+        // 준비시간 및 수락시간 모두 null이 아닌 경우만 남은 시간 계산
+        if ((order.getStatus() == OrderStatus.ACCEPTED || order.getStatus() == OrderStatus.PREPARING)
+                && order.getPreparationTime() != null && order.getAcceptedAt() != null) {
             LocalDateTime readyTime = order.getAcceptedAt().plusMinutes(order.getPreparationTime());
             remainingMinutes = Math.max(Duration.between(LocalDateTime.now(), readyTime).toMinutes(), 0);
         }
-
         return new OrderResponseDto(
                 order.getId(),
                 order.getStatus(),
@@ -307,5 +359,14 @@ public class OrderService {
                 order.getUpdatedAt() != null ? order.getUpdatedAt().format(FORMATTER) : null, // updatedAt
                 order.getPickupSlot()
         );
+    }
+
+    /*
+     * 실제 엔티티 반환용
+     * - 고객 컨트롤러에서 본인 주문 체크 시 사용
+     */
+    public Order getOrderByIdEntity(Long orderId) {
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 주문입니다."));
     }
 }

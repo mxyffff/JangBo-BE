@@ -1,8 +1,8 @@
 package me.swudam.jangbo.service;
 
 import lombok.RequiredArgsConstructor;
-import me.swudam.jangbo.dto.OrderRequestDto;
-import me.swudam.jangbo.dto.OrderResponseDto;
+import me.swudam.jangbo.dto.order.OrderRequestDto;
+import me.swudam.jangbo.dto.order.OrderResponseDto;
 import me.swudam.jangbo.dto.cart.RemoveItemsRequestDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

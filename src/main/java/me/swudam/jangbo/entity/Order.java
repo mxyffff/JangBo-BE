@@ -54,6 +54,10 @@ public class Order extends BaseTimeEntity {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderProduct> orderProducts = new ArrayList<>();
 
+    // 결제 영속성
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Payment payment;
+
     /* 연관관계 편의 메서드 */
     public void addOrderProduct(OrderProduct op) {
         orderProducts.add(op);
