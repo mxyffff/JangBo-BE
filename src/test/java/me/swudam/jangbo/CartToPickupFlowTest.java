@@ -10,6 +10,7 @@ import me.swudam.jangbo.entity.*;
 import me.swudam.jangbo.entity.DayOff;
 import me.swudam.jangbo.repository.StoreRepository;
 import me.swudam.jangbo.service.*;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
