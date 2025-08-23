@@ -1,4 +1,4 @@
-package me.swudam.jangbo.dto;
+package me.swudam.jangbo.dto.order;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

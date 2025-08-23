@@ -18,7 +18,7 @@ public class OrderSecurityConfig {
     @Order(3) // Merchant, CustomerConfig보다 뒤에 적용
     public SecurityFilterChain orderFilterChain(HttpSecurity http) throws Exception {
         http
-                .securityMatcher("/api/orders/**", "/api/merchants/orders/**", "/api/payments/**")
+                .securityMatcher("/api/orders/**", "/api/merchants/orders/**", "/api/payments/**", "/api/public/**")
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session
@@ -31,6 +31,9 @@ public class OrderSecurityConfig {
                         // 결제 API
                         .requestMatchers("/api/payments/**").hasRole("CUSTOMER")
                         .requestMatchers("/api/merchants/payments/**").hasRole("MERCHANT")
+
+                        // 픽업대 조회 API (PUBLIC)
+                        .requestMatchers("/api/public/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(error -> error

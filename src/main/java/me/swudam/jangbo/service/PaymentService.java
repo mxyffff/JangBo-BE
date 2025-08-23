@@ -242,7 +242,7 @@ public class PaymentService {
      */
     private PaymentResponseDto toDto(Payment payment) {
         return new PaymentResponseDto(
-                payment.getOrder().getId(),
+                payment.getOrder() != null ? payment.getOrder().getId() : null,
                 payment.getAmount(),
                 payment.getMethod(),
                 payment.getStatus()

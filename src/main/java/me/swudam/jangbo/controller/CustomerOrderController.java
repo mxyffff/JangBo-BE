@@ -2,10 +2,10 @@ package me.swudam.jangbo.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import me.swudam.jangbo.dto.OrderRequestDto;
-import me.swudam.jangbo.dto.OrderResponseDto;
+import me.swudam.jangbo.dto.order.OrderResponseDto;
 import me.swudam.jangbo.dto.cart.CartSelectionRequestDto;
 import me.swudam.jangbo.entity.Customer;
+import me.swudam.jangbo.entity.Order;
 import me.swudam.jangbo.repository.CustomerRepository;
 import me.swudam.jangbo.security.CustomerUserDetails;
 import me.swudam.jangbo.service.CheckoutService;
@@ -68,12 +68,28 @@ public class CustomerOrderController {
         return orderService.getOrderById(orderId);
     }
 
-    // 5. 주문 픽업 완료 처리
+    // 5. 주문 픽업 완료 처리 (고객 전용)
     // PATCH - /api/orders/{orderId}/pickup
     @PatchMapping("/{orderId}/pickup")
-    public ResponseEntity<?> completePickup(@PathVariable Long orderId) {
-        try {
+    public ResponseEntity<Map<String, Object>> completePickup(
+            @PathVariable Long orderId,
+            @AuthenticationPrincipal CustomerUserDetails user
+    ) { try {
+            // 로그인한 고객 ID 확인
+            Long customerId = user.getId();
+
+            // 주문 존재 여부 + 고객 소유 여부 체크
+            Order order = orderService.getOrderByIdEntity(orderId);
+            // 본인 주문인지 확인
+            if (!order.getCustomer().getId().equals(customerId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                        "updated", false,
+                        "message", "본인 주문만 픽업 완료할 수 있습니다."
+                ));
+            }
+            // 픽업 상태 확인 후 완료 처리
             orderService.completePickup(orderId);
+
             return ResponseEntity.ok(Map.of(
                     "updated", true,
                     "message", "픽업이 완료되었습니다."

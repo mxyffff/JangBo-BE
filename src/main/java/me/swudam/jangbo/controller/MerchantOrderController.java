@@ -2,7 +2,7 @@ package me.swudam.jangbo.controller;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
-import me.swudam.jangbo.dto.OrderResponseDto;
+import me.swudam.jangbo.dto.order.OrderResponseDto;
 import me.swudam.jangbo.entity.Merchant;
 import me.swudam.jangbo.service.MerchantService;
 import me.swudam.jangbo.service.OrderService;
