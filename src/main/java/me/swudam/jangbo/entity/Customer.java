@@ -27,6 +27,7 @@ public class Customer extends BaseTimeEntity {
     private String username;
 
     // email (로그인 id)
+    @Setter // 마이페이지 - 회원탈퇴 Setter 추가
     @Column(nullable = false, length = 255)
     private String email;
 

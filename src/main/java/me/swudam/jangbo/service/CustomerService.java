@@ -160,6 +160,9 @@ public class CustomerService {
         orderRepository.saveAll(orders);
 
         // 3. 고객 삭제 대신 soft delete
+        // 탈퇴한 이메일에는 _deleted_ + customerId를 붙이는 방식.
+        // DB가 조금 지저분해지지만, 이메일 컬럼의 unique index를 유지할 수 있음
+        customer.setEmail(customer.getEmail() + "_deleted_" + customer.getId());
         customer.setDeleted(true);
         customerRepository.save(customer);
     }
