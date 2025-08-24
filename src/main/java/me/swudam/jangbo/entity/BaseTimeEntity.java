@@ -1,8 +1,6 @@
 package me.swudam.jangbo.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.*;
 import lombok.Getter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -23,4 +21,14 @@ public abstract class BaseTimeEntity {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = this.updatedAt = java.time.LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = java.time.LocalDateTime.now();
+    }
 }
