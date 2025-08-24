@@ -62,6 +62,7 @@ public class MerchantSecurityConfig {
 
                         // 상점 조회 API는 누구나 가능
                         .requestMatchers(HttpMethod.GET, "/api/stores/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/stores/tagline/suggest").permitAll()
 
                         // 상점 등록, 로그인 여부 조회, 상점 수정, 상점 삭제 API는 인증 필요
                         .requestMatchers(HttpMethod.POST, "/api/stores").authenticated()
