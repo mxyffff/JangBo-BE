@@ -232,17 +232,27 @@ public class StoreService {
                 (kws.isEmpty() ? "" : ("\n키워드: " + String.join(", ", kws)));
 
         // 3. 모델 호출
-        String content = chatClient
-                .prompt()
-                .messages(new SystemMessage(system), new UserMessage(user))
-                .options(OpenAiChatOptions.builder()
-                        .model("gpt-4o-mini")
-                        .temperature(0.5)
-                        .maxTokens(200)
-                        .build())
-                .call()
-                .content();
+        String content;
+        try {
+            content = chatClient
+                    .prompt()
+                    .messages(new SystemMessage(system), new UserMessage(user))
+                    .options(OpenAiChatOptions.builder()
+                            .model("gpt-4o-mini")
+                            .temperature(0.5)
+                            .maxTokens(200)
+                            .build())
+                    .call()
+                    .content();
+        } catch (Exception e) {
+            // LLM 호출 자체 실패(키 없음/네트워크/모델 권한 등) → 폴백 반환
+            return fallbackTaglines(name, cat);
+        }
 
+
+        if (content == null || content.isBlank()) {
+            return fallbackTaglines(name, cat);
+        }
         // 4. JSON 파싱 + 후처리(중복 제거/길이 제한)
         try {
             content = stripFences(content);
@@ -256,18 +266,19 @@ public class StoreService {
                     if (!line.isEmpty()) out.add(line);
                 }
             }
-            // 중복 제거 + 최대 3개
-            return out.stream()
-                    .distinct()
-                    .limit(3)
-                    .collect(Collectors.toList());
-        } catch (Exception e) {
-            // 파싱 실패 시: 간단한 폴백 문구 1~2개 리턴
-            return List.of(
-                    normalizeTagline(name + " - 신선함과 정성을 전합니다."),
-                    normalizeTagline("매일 찾아오는 맛있는 " + ((cat.isEmpty()) ? "상품" : cat))
-            );
+            if (out.isEmpty()) return fallbackTaglines(name, cat);
+            return out.stream().distinct().limit(3).toList();
+        } catch (Exception ignore) {
+            return fallbackTaglines(name, cat);
         }
+    }
+
+    private List<String> fallbackTaglines(String name, String cat) {
+        return List.of(
+                normalizeTagline(name + " — 신선함과 정성을 전합니다"),
+                normalizeTagline("매일 들어오는 신선한 " + (cat.isBlank() ? "식재료" : cat)),
+                normalizeTagline("가까운 전통시장에서 만나는 " + name)
+        );
     }
 
     /* 내부 유틸 */

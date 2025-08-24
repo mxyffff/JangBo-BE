@@ -239,6 +239,17 @@ public class GlobalExceptionHandler {
                 ex.getMessage(), null);
     }
 
+    // 외부 AI 서비스 요청 단계 실패 (DNS, 연결, 프록시 등) → 502
+    @ExceptionHandler(org.springframework.web.reactive.function.client.WebClientRequestException.class)
+    public ResponseEntity<Map<String, Object>> handleWebClientRequest(
+            org.springframework.web.reactive.function.client.WebClientRequestException ex,
+            HttpServletRequest request
+    ) {
+        return build(request, HttpStatus.BAD_GATEWAY, "UPSTREAM_REQUEST_FAILED",
+                "외부 서비스와 통신할 수 없습니다. 네트워크 상태를 확인해주세요.",
+                Map.of("reason", ex.getMessage()));
+    }
+
     /* 공통 에러 바디 구성 유틸 */
     // success: 항상 false
     // status: HTTP 상태코드 숫자
