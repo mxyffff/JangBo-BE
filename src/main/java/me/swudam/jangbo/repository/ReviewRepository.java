@@ -95,4 +95,34 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     // 상품 단위로 모아 보기
     List<Review> findByProduct_IdOrderByCreatedAtDesc(Long productId);
+
+    // --- 단건 reviewId 조회 (내 주문+상품에 대해) ---
+    @Query("""
+           select r.id
+           from Review r
+           where r.customer.id = :customerId
+             and r.order.id    = :orderId
+             and r.product.id  = :productId
+           """)
+    Optional<Long> findIdByCustomerAndOrderAndProduct(@Param("customerId") Long customerId,
+                                                      @Param("orderId")    Long orderId,
+                                                      @Param("productId")  Long productId);
+
+    // --- 일괄 조회용: 여러 주문에서 (orderId, productId, reviewId) 튜플 뽑기 ---
+    interface ReviewIdTuple {
+        Long getOrderId();
+        Long getProductId();
+        Long getReviewId();
+    }
+
+    @Query("""
+           select r.order.id   as orderId,
+                  r.product.id as productId,
+                  r.id         as reviewId
+           from Review r
+           where r.customer.id = :customerId
+             and r.order.id in :orderIds
+           """)
+    List<ReviewIdTuple> findReviewIdTuplesByCustomerAndOrderIds(@Param("customerId") Long customerId,
+                                                                @Param("orderIds")   Collection<Long> orderIds);
 }

@@ -146,6 +146,23 @@ public class ReviewService {
 
     public record ProductRatingSummary(double average, long count) {}
 
+    @Transactional(readOnly = true)
+    public Optional<Long> getMyReviewId(Long customerId, Long orderId, Long productId) {
+        // 쿼리 자체가 customerId로 필터하기 때문에, 내 주문/상품이 아니면 빈 값 반환됨
+        return reviewRepository.findIdByCustomerAndOrderAndProduct(customerId, orderId, productId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReviewIdItem> getMyReviewIdItemsByOrders(Long customerId, Collection<Long> orderIds) {
+        if (orderIds == null || orderIds.isEmpty()) return List.of();
+        return reviewRepository.findReviewIdTuplesByCustomerAndOrderIds(customerId, orderIds).stream()
+                .map(t -> new ReviewIdItem(t.getOrderId(), t.getProductId(), t.getReviewId()))
+                .toList();
+    }
+
+    // 프론트 친화형 응답 아이템
+    public record ReviewIdItem(Long orderId, Long productId, Long reviewId) {}
+
     // 내부 변환 메서드
     private ReviewResponseDto toDto(Review review){
         return ReviewResponseDto.builder()
