@@ -209,6 +209,36 @@ public class GlobalExceptionHandler {
                 "외부 서비스와 통신할 수 없습니다. 네트워크 상태를 확인해주세요.", null);
     }
 
+    // 401: 로그인 안 함 / 세션 만료
+    @ExceptionHandler(org.springframework.security.authentication.AuthenticationCredentialsNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleAuthRequired(
+            org.springframework.security.authentication.AuthenticationCredentialsNotFoundException ex,
+            jakarta.servlet.http.HttpServletRequest request
+    ) {
+        return build(request, HttpStatus.UNAUTHORIZED, "AUTH_REQUIRED",
+                (ex.getMessage() == null || ex.getMessage().isBlank()) ? "로그인이 필요합니다." : ex.getMessage(), null);
+    }
+
+    // 403: 권한 없음 (접근 금지)
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDenied(
+            org.springframework.security.access.AccessDeniedException ex,
+            jakarta.servlet.http.HttpServletRequest request
+    ) {
+        return build(request, HttpStatus.FORBIDDEN, "FORBIDDEN",
+                "접근 권한이 없습니다.", null);
+    }
+
+    // 409: 현재 상태에서 처리 불가(중복 작성 등)
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalState(
+            IllegalStateException ex,
+            jakarta.servlet.http.HttpServletRequest request
+    ) {
+        return build(request, HttpStatus.CONFLICT, "CONFLICT",
+                ex.getMessage(), null);
+    }
+
     /* 공통 에러 바디 구성 유틸 */
     // success: 항상 false
     // status: HTTP 상태코드 숫자
