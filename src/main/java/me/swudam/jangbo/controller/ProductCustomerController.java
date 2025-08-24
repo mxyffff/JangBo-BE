@@ -63,7 +63,7 @@ public class ProductCustomerController {
     private String normalizeSort(String raw) {
         String key = (raw == null) ? "recent" : raw.toLowerCase(Locale.ROOT).trim();
         return switch (key) {
-            case "recent", "cheap", "fresh" -> key;
+            case "recent", "cheap", "fresh", "popular" -> key;
             default -> "recent";
         };
     }

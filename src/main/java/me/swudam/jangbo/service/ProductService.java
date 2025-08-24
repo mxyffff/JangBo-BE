@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import me.swudam.jangbo.dto.ProductCreateRequestDto;
 import me.swudam.jangbo.dto.ProductUpdateRequestDto;
 import me.swudam.jangbo.entity.Merchant;
+import me.swudam.jangbo.entity.OrderStatus;
 import me.swudam.jangbo.entity.Product;
 import me.swudam.jangbo.repository.MerchantRepository;
 import me.swudam.jangbo.repository.ProductRepository;
@@ -40,13 +41,14 @@ public class ProductService {
     }
 
     // 특정 상인 목록 정렬 조회 (상인/고객 공용: 상점 페이지)
-    // recent : 최신순, cheap : 저가순, fresh : 신선순
+    // recent : 최신순, cheap : 저가순, fresh : 신선순 + popular : 인기순
     public List<Product> getProductsByMerchant(Long merchantId, String sort) {
         String key = normalizeSort(sort);
         return switch (key) {
             case "recent" -> productRepository.findAllByMerchantIdOrderByCreatedAtDesc(merchantId);
             case "cheap" -> productRepository.findAllByMerchantIdOrderByPriceAsc(merchantId);
             case "fresh" -> productRepository.findAllByMerchantIdOrderByExpiryDateDesc(merchantId);
+            case "popular" -> productRepository.findPopularByMerchant(merchantId, OrderStatus.COMPLETED);
             default -> throw new IllegalArgumentException("지원하지 않는 정렬 기준: " + sort);
         };
     }
@@ -59,6 +61,7 @@ public class ProductService {
             case "recent" -> productRepository.findAllByOrderByCreatedAtDesc();
             case "cheap" -> productRepository.findAllByOrderByPriceAsc();
             case "fresh" -> productRepository.findAllByOrderByExpiryDateDesc();
+            case "popular" -> productRepository.findAllOrderByPopularity(OrderStatus.COMPLETED);
             default -> throw new IllegalArgumentException("지원하지 않는 정렬 기준: " + sort);
         };
     }
@@ -83,6 +86,7 @@ public class ProductService {
             }
             case "cheap" -> productRepository.findByNameContainingIgnoreCaseOrderByPriceAsc(q);
             case "fresh" -> productRepository.findByNameContainingIgnoreCaseOrderByExpiryDateDesc(q);
+            case "popular"  -> productRepository.findByNameOrderByPopularity(q, OrderStatus.COMPLETED);
             default -> throw new IllegalArgumentException("지원하지 않는 정렬 기준: " + sort);
         };
     }
@@ -174,7 +178,7 @@ public class ProductService {
     private String normalizeSort(String sort) {
         String key = (sort == null) ? "recent" : sort.toLowerCase(Locale.ROOT).trim();
         return switch (key) {
-            case "recent", "cheap", "fresh" -> key;
+            case "recent", "cheap", "fresh", "popular" -> key;
             default -> "recent";
         };
     }

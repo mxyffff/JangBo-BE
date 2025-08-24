@@ -105,7 +105,7 @@ public class ProductMerchantController {
     }
 
     // 5. Read 상품 목록 조회 (특정 상인 고정)
-    // GET /api/merchants/products?sort={recent|cheap|fresh} -> 추후 인기순도 추가
+    // GET /api/merchants/products?sort={recent|cheap|fresh|popular}
     @GetMapping
     public ResponseEntity<List<ProductResponseDto>> list(
             @AuthenticationPrincipal MerchantUserDetails principal,
