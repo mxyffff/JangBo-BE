@@ -24,4 +24,7 @@ public class OrderResponseDto {
     private Long remainingMinutes; // 분 단위 남은 시간
     private String updatedAt; // yyyy-MM-dd HH:mm:ss
     private Integer pickupSlot; // 픽업대 번호
+
+    private String customerName; // 주문자 이름 추가
+    private String customerEmail; // 주문자 이메일 추가
 }

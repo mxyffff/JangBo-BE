@@ -357,7 +357,9 @@ public class OrderService {
                 products, // 주문 상품 DTO
                 remainingMinutes, // 남은 준비 시간
                 order.getUpdatedAt() != null ? order.getUpdatedAt().format(FORMATTER) : null, // updatedAt
-                order.getPickupSlot()
+                order.getPickupSlot(),
+                order.getCustomer().getUsername(), // 고객 이름 추가 0824
+                order.getCustomer().getEmail() // 고객 이메일 추가 0824
         );
     }
 
