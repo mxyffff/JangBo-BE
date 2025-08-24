@@ -68,9 +68,17 @@ public class MerchantController {
         // 일반 세션에도 이메일 저장
         newSession.setAttribute("merchantEmail", ((UserDetails) authentication.getPrincipal()).getUsername());
 
+        // storeId 조회 0824
+        Merchant merchant = merchantRepository.findByEmail(email);
+        Long storeId = null;
+        if (merchant != null && !merchant.getStores().isEmpty()) {
+            storeId = merchant.getStores().get(0).getId(); // 유일한 상점
+        }
+
         return ResponseEntity.ok(Map.of(
                 "loggedIn", true,
-                "email", ((UserDetails) authentication.getPrincipal()).getUsername()
+                "email", ((UserDetails) authentication.getPrincipal()).getUsername(),
+                "storeId", storeId
         ));
     }
 
