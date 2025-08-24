@@ -2,6 +2,8 @@ package me.swudam.jangbo.controller;
 
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import me.swudam.jangbo.dto.StoreFormDto;
 import me.swudam.jangbo.entity.Merchant;
@@ -63,12 +65,10 @@ public class StoreController {
         session.removeAttribute("justRegisteredMerchant");
         session.removeAttribute("justRegisteredMerchantEmail");
 
-        // 1-9. 성공 응답 데이터
-        Map<String, Object> body = new HashMap<>();
-        body.put("created", true);
-        body.put("storeId", storeId);
-        // 1-10. 201 Created
-        return ResponseEntity.status(HttpStatus.CREATED).body(body);
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "created", true,
+                "storeId", storeId
+        ));
     }
 
     // 2. 특정 상점 조회 (R)
@@ -163,6 +163,32 @@ public class StoreController {
         return ResponseEntity.ok(Map.of("deleted", true, "storeId", storeId));
     }
 
+    /* 6. [AI] 한 줄 소개 추천
+        요청 JSON body:
+        {
+            "storeName": "태릉정육",
+             "category": "정육/계란",     // 옵션
+             "keywords": ["신선", "국내산"] // 옵션 (최대 8개 권장)
+        }
+        응답 JSON:
+        {
+            "success": true,
+             "candidates": ["문장1","문장2","문장3"]
+        }
+    */
+    @PostMapping("/tagline/suggest")
+    public ResponseEntity<?> suggestTagline(@RequestBody @Valid TaglineSuggestRequest req) {
+        var candidates = storeService.suggestTaglines(
+                req.storeName(),
+                req.category(),    // null 가능: 서비스에서 정리
+                req.keywords()     // null 가능: 서비스에서 정리
+        );
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "candidates", candidates
+        ));
+    }
+
     // 내부 유틸: 이메일 추출 메서드
     private String extractEmail(Authentication authentication, HttpSession session) {
         String email = null;
@@ -190,7 +216,23 @@ public class StoreController {
         return email;
     }
 
+    /* 요청/응답 DTO */
+    // AI 한 줄 소개 추천 요청
+    public record TaglineSuggestRequest(
+            @NotBlank(message = "상점명은 필수입니다.")
+            String storeName,
+
+            // 선택값: 없으면 모델이 상점명만 보고 생성
+            @Size(max = 30, message = "카테고리는 30자를 넘을 수 없습니다.")
+            String category,
+
+            // 선택값: 공백/중복은 서비스에서 정리, 과도한 입력 방지를 위해 개수 제한
+            @Size(max = 8, message = "키워드는 최대 8개까지 입력할 수 있습니다.")
+            List<@Size(max = 12, message = "키워드는 12자 이내여야 합니다.") String> keywords
+    ) {
     }
+
+}
 
 /*
 전체 흐름 요약

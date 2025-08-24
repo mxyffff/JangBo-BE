@@ -27,6 +27,10 @@ import java.util.Set;
 @Getter
 @Setter
 public class Store extends BaseTimeEntity {
+
+    // ※ 한 줄 소개 글 길이 제한(프론트 디자인 고려)
+    public static final int MAX_TAGLINE_LENGTH = 80;
+
     // PK
     @Id
     @Column(name = "store_id")
@@ -58,6 +62,11 @@ public class Store extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     private Category category; // 카테고리
 
+    // (신규) 한 줄 소개 — 직접 입력/AI 추천 결과가 들어오는 곳
+    // - 길이 제한: DB는 80자까지, 서비스/도메인에서 동일하게 제한
+    @Column(name = "tagline", length = MAX_TAGLINE_LENGTH)
+    private String tagline;
+
     // 수정
     // Merchant와의 관계 (FK)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -81,7 +90,18 @@ public class Store extends BaseTimeEntity {
         store.setCategory(storeFormDto.getCategory());
         store.setMerchant(merchant);
 
+        // null 들어와도 빈 문자열로 정리해서 NOT NULL 보장
+        store.updateTagline(storeFormDto.getTagline());
+
         // 이미지 저장 로직은 Service에서 처리
         return store;
+    }
+
+    /** 한 줄 소개 업데이트(항상 NOT NULL 유지) */
+    public void updateTagline(String newTagline) {
+        // null -> "" 로 변환, 양끝/연속 공백 정리, 80자 컷
+        String t = (newTagline == null) ? "" : newTagline.trim().replaceAll("\\s+", " ");
+        if (t.length() > MAX_TAGLINE_LENGTH) t = t.substring(0, MAX_TAGLINE_LENGTH);
+        this.tagline = t;
     }
 }
