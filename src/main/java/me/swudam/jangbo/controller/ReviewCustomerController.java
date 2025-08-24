@@ -102,6 +102,43 @@ public class ReviewCustomerController {
         return name == null || "anonymousUser".equals(name);
     }
 
-    /** 요청 바디 DTO(간단): 여러 주문 id */
+    /* 요청 바디 DTO(간단): 여러 주문 id */
     public record ReviewedPairsRequest(Collection<Long> orderIds) {}
+
+    @PostMapping("/me/id")
+    public ResponseEntity<?> getMyReviewId(@RequestBody ReviewIdLookup body) {
+        Long customerId = currentCustomerIdOrThrow();
+
+        if (body == null || body.orderId() == null || body.productId() == null) {
+            // 전역 핸들러가 400으로 변환
+            throw new IllegalArgumentException("orderId와 productId는 필수입니다.");
+        }
+
+        return reviewService.getMyReviewId(customerId, body.orderId(), body.productId())
+                .<ResponseEntity<?>>map(id -> ResponseEntity.ok(Map.of(
+                        "found", true,
+                        "reviewId", id
+                )))
+                .orElseGet(() -> ResponseEntity.ok(Map.of(
+                        "found", false
+                )));
+    }
+
+    /*
+     * 여러 주문에 대해 (orderId, productId, reviewId) 리스트로 일괄 반환
+     * - 프론트가 "리뷰 남기기" 화면에서 바로 수정/삭제 버튼 활성화하려면 편함
+     */
+    @PostMapping("/me/id-map")
+    public ResponseEntity<?> getMyReviewIdMap(@RequestBody IdMapRequest body) {
+        Long customerId = currentCustomerIdOrThrow();
+        var items = reviewService.getMyReviewIdItemsByOrders(customerId, body.orderIds());
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "items", items   // [{orderId, productId, reviewId}, ...]
+        ));
+    }
+
+    /* --- 요청 바디 레코드 --- */
+    public record ReviewIdLookup(Long orderId, Long productId) {}
+    public record IdMapRequest(Collection<Long> orderIds) {}
 }
