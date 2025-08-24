@@ -1,7 +1,10 @@
 package me.swudam.jangbo.repository;
 
+import me.swudam.jangbo.entity.OrderStatus;
 import me.swudam.jangbo.entity.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +25,22 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // 신선순 정렬(유통기한 많이 남은 순)
     List<Product> findAllByMerchantIdOrderByExpiryDateDesc(Long merchantId);
 
+    /* 특정 상인 상품: 인기순(완료 주문 건수 내림차순) */
+    @Query("""
+        select p
+        from Product p
+        left join OrderProduct op on op.product = p
+        left join op.order o
+        where p.merchant.id = :merchantId
+        group by p.id
+        order by sum(case when o.status = :completed then 1 else 0 end) desc,
+                 p.createdAt desc
+    """)
+    List<Product> findPopularByMerchant(
+            @Param("merchantId") Long merchantId,
+            @Param("completed") OrderStatus completed
+    );
+
     /* 전역 목록 조회 (정렬) - 고객 전용 */
     // 최신순 정렬
     List<Product> findAllByOrderByCreatedAtDesc();
@@ -30,6 +49,18 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // 신선순
     List<Product> findAllByOrderByExpiryDateDesc();
 
+    /* 전역 상품: 인기순(완료 주문 건수 내림차순) */
+    @Query("""
+        select p
+        from Product p
+        left join OrderProduct op on op.product = p
+        left join op.order o
+        group by p.id
+        order by sum(case when o.status = :completed then 1 else 0 end) desc,
+                 p.createdAt desc
+    """)
+    List<Product> findAllOrderByPopularity(@Param("completed") OrderStatus completed);
+
     /* 검색: AI 장보 기능에서 2차 처리를 위한 세부 조건 검색 */
     // 검색: 특정 상인 + 이름 검색 + 최신순
     List<Product> findByMerchantIdAndNameContainingIgnoreCaseOrderByCreatedAtDesc(Long merchantId, String keyword);
@@ -37,6 +68,22 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByNameContainingIgnoreCaseOrderByExpiryDateDesc(String keyword);
     // 이름 검색 + 저가순
     List<Product> findByNameContainingIgnoreCaseOrderByPriceAsc(String keyword);
+
+    /* 전역 검색: 인기순(완료 주문 건수 내림차순) */
+    @Query("""
+        select p
+        from Product p
+        left join OrderProduct op on op.product = p
+        left join op.order o
+        where lower(p.name) like lower(concat('%', :keyword, '%'))
+        group by p.id
+        order by sum(case when o.status = :completed then 1 else 0 end) desc,
+                 p.createdAt desc
+    """)
+    List<Product> findByNameOrderByPopularity(
+            @Param("keyword") String keyword,
+            @Param("completed") OrderStatus completed
+    );
 
 
     // 존재 여부: 중복 검증이나 사전 체크용
