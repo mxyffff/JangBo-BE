@@ -82,6 +82,7 @@ public class Store extends BaseTimeEntity {
         Store store = new Store();
 
         store.setStoreName(storeFormDto.getStoreName());
+        store.setStoreImgPath(String.valueOf(storeFormDto.getStoreImgPath())); // 이미지 경로 추가
         store.setStoreAddress(storeFormDto.getStoreAddress());
         store.setOpenTime(storeFormDto.getOpenTime());
         store.setCloseTime(storeFormDto.getCloseTime());

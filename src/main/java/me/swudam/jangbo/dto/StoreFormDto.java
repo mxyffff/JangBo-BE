@@ -27,7 +27,11 @@ public class StoreFormDto {
     @NotBlank(message = "상점명은 필수 입력 값입니다.")
     private String storeName;
 
-    private MultipartFile storeImage;
+    // 요청시 업로드된 파일 받기용
+    private MultipartFile storeImgFile;
+
+    // 응답시 클라이언트에 전달할 저장된 이미지 경로 (String)
+    private String storeImgPath;
 
     @NotBlank(message = "도로명주소는 필수 입력 값입니다.")
     private String storeAddress;
@@ -62,6 +66,7 @@ public class StoreFormDto {
         dto.setStoreId(s.getId()); // 상점 id 추가 (선택)
         dto.setMerchantId(s.getMerchant() != null ? s.getMerchant().getId() : null); // 상인 id 추가
         dto.setStoreName(s.getStoreName());
+        dto.setStoreImgPath(s.getStoreImgPath()); // 이미지 경로 추가
         dto.setStoreAddress(s.getStoreAddress());
         dto.setOpenTime(s.getOpenTime());
         dto.setCloseTime(s.getCloseTime());
