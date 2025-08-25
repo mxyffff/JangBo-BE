@@ -17,7 +17,8 @@ public class CorsConfig {
                 "http://localhost:3000",
                 "http://localhost:5173",         // Vite 등 사용 시
                 "https://nullheather.shop",
-                "https://*.nullheather.shop"
+                "http://3.36.56.52",       // EC2 IP
+                "http://nullheather.shop" // 도메인
         ));
         configuration.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
